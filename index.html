@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ደብረ ብሥራት — Mezmur editor</title>
+<style>
+  :root {
+    --navy: #0F326A; --navy-deep: #081D42; --gold: #F2C25B; --gold-deep: #9A6A10;
+    --bg: #F5F8FE; --card: #FFFFFF; --text: #0E1A33; --soft: #4A5670; --line: #D6DEEE;
+    --tint: #E7EEFB; --danger: #B3261E; --ok: #1B7466; --warn-bg: #FBEFD2; --warn-text: #3A2A05;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0A1222; --card: #101A2E; --text: #E6ECF8; --soft: #B6C2DA; --line: #2A3856;
+      --tint: #1A2744; --danger: #FF8A80; --ok: #7CCFC0; --warn-bg: #3F3212; --warn-text: #FBEFD2;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, "Noto Sans Ethiopic", "Nyala", sans-serif; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  header { position: sticky; top: 0; z-index: 5; background: linear-gradient(120deg, var(--navy-deep), var(--navy)); color: #F7FAFF; padding: 10px 14px 12px; border-radius: 0 0 20px 20px; }
+  .bar { display: flex; align-items: center; gap: 10px; max-width: 860px; margin: 0 auto; }
+  .bar h1 { font-size: 19px; margin: 0; flex: 1; font-family: Georgia, "Noto Serif Ethiopic", serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status { max-width: 860px; margin: 2px auto 0; font-size: 13px; color: var(--gold); min-height: 18px; }
+  .iconbtn { background: rgba(255,255,255,.14); border: 0; color: #F7FAFF; border-radius: 999px; min-width: 42px; height: 42px; padding: 0 12px; font-size: 18px; }
+  .publish { background: var(--gold); color: var(--navy-deep); border: 0; border-radius: 999px; height: 42px; padding: 0 18px; font-weight: 700; }
+  .publish[disabled] { opacity: .45; cursor: default; }
+
+  main { max-width: 860px; margin: 0 auto; padding: 14px 14px 110px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 14px; }
+  .card h2 { margin: 0 0 6px; font-size: 18px; }
+  .hint { color: var(--soft); font-size: 14px; margin: 4px 0 0; }
+  .warn { background: var(--warn-bg); color: var(--warn-text); border-radius: 14px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
+
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .tabs { display: flex; background: var(--tint); border-radius: 999px; padding: 4px; }
+  .tabs button { border: 0; background: transparent; border-radius: 999px; padding: 8px 14px; color: var(--soft); font-weight: 600; }
+  .tabs button.on { background: var(--navy); color: #fff; }
+  .field, select.field, textarea.field { width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; }
+  .field:focus { outline: 2px solid var(--gold); border-color: var(--gold); }
+  .grow { flex: 1 1 180px; }
+  .btn { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 10px 16px; font-weight: 600; }
+  .btn.main { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .btn.danger { color: var(--danger); }
+  .btn.small { padding: 6px 12px; font-size: 14px; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--soft); }
+  .check input { width: 20px; height: 20px; }
+
+  .rows { background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 11px 14px; }
+  .row:last-child { border-bottom: 0; }
+  .row:active { background: var(--tint); }
+  .num { flex: none; min-width: 44px; height: 34px; border-radius: 999px; background: var(--tint); display: grid; place-items: center; font-weight: 700; font-size: 14px; padding: 0 8px; }
+  .row .what { flex: 1; min-width: 0; }
+  .row .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .sub { color: var(--soft); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row.gone .title { text-decoration: line-through; opacity: .6; }
+  .tag { flex: none; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 9px; background: var(--tint); color: var(--soft); }
+  .tag.edited { background: var(--gold); color: var(--navy-deep); }
+  .tag.new { background: var(--ok); color: #fff; }
+  .tag.deleted { background: var(--danger); color: #fff; }
+  .empty { padding: 34px 16px; text-align: center; color: var(--soft); }
+
+  label.f { display: block; font-weight: 600; margin: 14px 0 5px; }
+  label.f small { font-weight: 400; color: var(--soft); }
+  textarea.field { min-height: 120px; resize: vertical; line-height: 1.7; }
+  textarea.words { min-height: 340px; font-size: 17px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .two { grid-template-columns: 1fr; } }
+  .error { color: var(--danger); font-size: 14px; margin-top: 4px; }
+  details { margin-top: 8px; color: var(--soft); font-size: 14px; }
+  details code { background: var(--tint); border-radius: 6px; padding: 1px 6px; color: var(--text); }
+  .actions { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); z-index: 4; }
+  .actions .in { max-width: 860px; margin: 0 auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .actions .btn.main { flex: 1; }
+
+  .shade { position: fixed; inset: 0; background: rgba(4,10,24,.55); z-index: 20; display: grid; place-items: end center; }
+  @media (min-width: 620px) { .shade { place-items: center; } }
+  .sheet { background: var(--card); width: min(560px, 100%); max-height: 88vh; overflow: auto; border-radius: 22px 22px 0 0; padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); }
+  @media (min-width: 620px) { .sheet { border-radius: 22px; } }
+  .sheet h2 { margin: 0 0 8px; font-size: 19px; }
+  .sheet .list { margin: 8px 0; padding-left: 20px; }
+  .sheet .foot { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 16px; }
+  .menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 13px 6px; border-bottom: 1px solid var(--line); }
+  .menu button small { display: block; color: var(--soft); }
+  .toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--navy-deep); color: #fff; padding: 11px 18px; border-radius: 999px; z-index: 30; max-width: 92vw; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <button class="iconbtn" id="back" hidden aria-label="Back">←</button>
+    <h1 id="heading">ደብረ ብሥራት — Editor</h1>
+    <button class="publish" id="publish" disabled>Publish</button>
+    <button class="iconbtn" id="menu" aria-label="Menu">☰</button>
+  </div>
+  <div class="status" id="status"></div>
+</header>
+<main id="app"></main>
+
+<script>
+"use strict";
+/*
+ * The editor of the online mezmur book (see ONLINE_GUIDE.md in the project).
+ *
+ * The book is one file, mezmurs.json, in a private GitHub repository. This page reads
+ * it with your key, lets you change mezmurs, and "Publish" writes it back with the
+ * version number raised by one. The app on every phone then downloads the new book.
+ *
+ * This page itself holds no mezmurs and no key, so it is safe on a public web address.
+ *
+ * Nothing is sent anywhere except to GitHub. Changes that are not published yet are
+ * kept in this browser, so you can also work without internet and publish later.
+ */
+const API = "https://api.github.com";
+const BOOK_FILE = "mezmurs.json";
+const VERSION_FILE = "version.json";
+
+// ---------- what this browser remembers ----------
+const memory = {};
+let storageWorks = true;
+function recall(key, fallback) {
+  try {
+    const text = localStorage.getItem("mezmur." + key);
+    return text == null ? fallback : JSON.parse(text);
+  } catch (problem) {
+    storageWorks = false;
+    return key in memory ? memory[key] : fallback;
+  }
+}
+function remember(key, value) {
+  memory[key] = value;
+  try { localStorage.setItem("mezmur." + key, JSON.stringify(value)); } catch (problem) { storageWorks = false; }
+}
+
+function emptyDraft() { return { changed: {}, before: {}, deleted: [], whole: null }; }
+
+/**
+ * On a github.io page the owner is in the address. The editor page lives in the
+ * repository "mezmur-editor" and the book in "mezmur": the name without "-editor".
+ */
+function guessConnection() {
+  const host = location.hostname;
+  if (!host.endsWith(".github.io")) return { owner: "", repo: "mezmur", token: "" };
+  const owner = host.split(".")[0];
+  const folder = location.pathname.split("/").filter(Boolean)[0] || "";
+  const repo = !folder || folder.endsWith(".html") ? "mezmur" : folder.replace(/-editor$/, "");
+  return { owner: owner, repo: repo, token: "" };
+}
+
+let conn = recall("conn", null) || guessConnection();
+let base = recall("base", null);          // the book as it is online (the last time it was read)
+let draft = recall("draft", null) || emptyDraft();   // my changes that are not published yet
+let online = false;                       // true when "base" was read from GitHub in this visit
+let busy = "";                            // a short text while something is loading
+let listState = { kind: "mezmur", section: "", query: "", mine: false, scroll: 0 };
+
+function keepDraft() { remember("draft", draft); view = null; }
+
+// ---------- the book with my changes on top ----------
+function source() { return draft.whole || base; }
+
+function sectionIndex(book, name) {
+  const at = (book.categories || []).indexOf(name);
+  return at < 0 ? 999 : at;
+}
+
+/** Mezmurs in the order of the sections and then by number; wereb after them. */
+function sorted(book, songs) {
+  return songs.map(function (song, at) { return { song: song, at: at }; }).sort(function (a, b) {
+    const wa = a.song.k === "wereb" ? 1 : 0, wb = b.song.k === "wereb" ? 1 : 0;
+    if (wa !== wb) return wa - wb;
+    if (!wa) {
+      const sa = sectionIndex(book, a.song.c), sb = sectionIndex(book, b.song.c);
+      if (sa !== sb) return sa - sb;
+    }
+    return (a.song.n - b.song.n) || (a.at - b.at);
+  }).map(function (item) { return item.song; });
+}
+
+/** Puts the changes of a draft into a book (used for showing and for publishing). */
+function applyDraft(book, changes) {
+  const gone = new Set(changes.deleted);
+  const known = new Set(book.songs.map(function (song) { return song.id; }));
+  let songs = book.songs.filter(function (song) { return !gone.has(song.id); })
+    .map(function (song) { return changes.changed[song.id] || song; });
+  for (const id in changes.changed) if (!known.has(id)) songs.push(changes.changed[id]);
+  book.songs = sorted(book, songs);
+  return book;
+}
+
+/** Every row of the list: the song as I have it now, and what I did to it. */
+let view = null;
+function rows() {
+  if (view) return view;
+  const book = source();
+  if (!book) return [];
+  const gone = new Set(draft.deleted);
+  const known = new Set();
+  const list = [];
+  for (const song of book.songs) {
+    known.add(song.id);
+    if (gone.has(song.id)) list.push({ song: song, state: "deleted" });
+    else if (draft.changed[song.id]) list.push({ song: draft.changed[song.id], state: "edited" });
+    else list.push({ song: song, state: "" });
+  }
+  for (const id in draft.changed) if (!known.has(id)) list.push({ song: draft.changed[id], state: "new" });
+  const order = new Map(sorted(book, list.map(function (row) { return row.song; })).map(function (song, at) { return [song.id, at]; }));
+  view = list.sort(function (a, b) { return order.get(a.song.id) - order.get(b.song.id); });
+  return view;
+}
+
+function countChanges() {
+  let edited = 0, added = 0;
+  const book = source();
+  const known = new Set(book ? book.songs.map(function (song) { return song.id; }) : []);
+  for (const id in draft.changed) if (known.has(id)) edited++; else added++;
+  return { edited: edited, added: added, deleted: draft.deleted.length, whole: !!draft.whole,
+           total: edited + added + draft.deleted.length + (draft.whole ? 1 : 0) };
+}
+
+// ---------- GitHub ----------
+function toBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
+function fromBase64(encoded) {
+  const binary = atob(encoded.replace(/\s/g, ""));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
+function plainError(status) {
+  if (status === 401) return "The key is wrong or has expired. Open the menu → Connection and paste a new key.";
+  if (status === 403) return "GitHub refused. The key may not have permission for this repository (it needs Contents: Read and write), or there were too many tries. Wait a few minutes.";
+  if (status === 404) return conn.token
+    ? "Not found. Check the user name and the repository name in the menu → Connection. If they are right, the key is not allowed to open this repository."
+    : "The book is private: it can only be read with the key. Add the key in the menu → Connection.";
+  return "GitHub answered with an error (" + status + "). Try again in a minute.";
+}
+
+async function github(path, options) {
+  options = options || {};
+  const headers = Object.assign({ "Accept": "application/vnd.github+json" }, options.headers || {});
+  if (conn.token) headers["Authorization"] = "Bearer " + conn.token;
+  const address = API + "/repos/" + encodeURIComponent(conn.owner) + "/" + encodeURIComponent(conn.repo) + "/contents/" + path;
+  let reply;
+  try {
+    reply = await fetch(address, { method: options.method || "GET", headers: headers, body: options.body, cache: "no-store" });
+  } catch (problem) {
+    const failed = new Error("No internet connection (or GitHub cannot be reached).");
+    failed.offline = true;
+    throw failed;
+  }
+  return reply;
+}
+
+/** The text of a file and its "sha" (GitHub needs the sha to replace the file). Null when there is no such file. */
+async function readFile(path) {
+  const reply = await github(path);
+  if (reply.status === 404) return null;
+  if (!reply.ok) throw new Error(plainError(reply.status));
+  const info = await reply.json();
+  let text;
+  if (info.content) {
+    text = fromBase64(info.content);
+  } else {   // a file over 1 MB comes without its content: ask for it raw
+    const raw = await github(path, { headers: { "Accept": "application/vnd.github.raw+json" } });
+    if (!raw.ok) throw new Error(plainError(raw.status));
+    text = await raw.text();
+  }
+  return { text: text, sha: info.sha };
+}
+
+async function writeFile(path, text, sha, message) {
+  const body = { message: message, content: toBase64(text) };
+  if (sha) body.sha = sha;
+  const reply = await github(path, { method: "PUT", body: JSON.stringify(body) });
+  if (reply.status === 409 || reply.status === 422) {
+    const clash = new Error("Someone else published at the same moment.");
+    clash.clash = true;
+    throw clash;
+  }
+  if (!reply.ok) throw new Error(plainError(reply.status));
+}
+
+function versionText(book) {
+  return JSON.stringify({ rev: book.rev || 1, updated: book.updated || "", songs: book.songs.length, note: book.note || "" });
+}
+
+/** The small file the app reads first. Written again whenever it does not match the book. */
+async function matchVersionFile(book) {
+  const now = await readFile(VERSION_FILE);
+  const wanted = versionText(book);
+  if (now && now.text === wanted) return;
+  await writeFile(VERSION_FILE, wanted, now ? now.sha : null, "Version " + (book.rev || 1));
+}
+
+async function loadOnline(quiet) {
+  if (!conn.owner || !conn.repo) return;
+  busy = "Reading the book from GitHub…";
+  paintStatus();
+  try {
+    const file = await readFile(BOOK_FILE);
+    if (!file) {
+      busy = "";
+      online = false;
+      if (!quiet || !base) toast(conn.token ? "The book (mezmurs.json) was not found. Check the names in menu → Connection, or open a backup file and publish it." : plainError(404));
+    } else {
+      base = JSON.parse(file.text);
+      remember("base", base);
+      online = true;
+      view = null;
+      busy = "";
+      if (conn.token) matchVersionFile(base).catch(function () {});
+    }
+  } catch (problem) {
+    busy = "";
+    online = false;
+    if (!quiet || !base) toast(problem.message);
+  }
+  render();
+}
+
+/** The date on this device, like 2026-11-15. */
+function today() {
+  const now = new Date();
+  return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+}
+
+/**
+ * Publishing: read the newest book again, put my changes on top of it, raise the
+ * version by one, and write it. So changes that another person published while I
+ * was working are kept; only the mezmurs I touched are replaced.
+ */
+async function publish(note, onStep) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    onStep("Reading the newest book…");
+    const file = await readFile(BOOK_FILE);
+    const newest = file ? JSON.parse(file.text) : null;
+    const book = draft.whole ? JSON.parse(JSON.stringify(draft.whole)) : newest;
+    if (!book) throw new Error("There is no book online yet. Menu → Open a backup file first.");
+    applyDraft(book, draft);
+    book.rev = Math.max(newest ? (newest.rev || 0) : 0, book.rev || 0) + 1;
+    book.updated = today();
+    book.note = note || "";
+    onStep("Sending version " + book.rev + "…");
+    try {
+      await writeFile(BOOK_FILE, JSON.stringify(book), file ? file.sha : null, "Version " + book.rev + (note ? ": " + note : ""));
+    } catch (problem) {
+      if (problem.clash && attempt < 3) continue;   // someone else was faster: start again from their book
+      throw problem;
+    }
+    base = book;
+    remember("base", base);
+    draft = emptyDraft();
+    keepDraft();
+    online = true;
+    onStep("Almost done…");
+    let last = null;
+    for (let i = 0; i < 3; i++) {
+      try { await matchVersionFile(book); last = null; break; } catch (problem) { last = problem; }
+    }
+    if (last) throw new Error("The book was sent, but the small version file was not. Open the menu → Read again from online; it will be repaired.");
+    return book.rev;
+  }
+}
+
+/** Mezmurs I changed that someone else also changed online after I read the book. */
+async function findClashes() {
+  if (draft.whole) return [];
+  const file = await readFile(BOOK_FILE);
+  if (!file) return [];
+  const newest = JSON.parse(file.text);
+  const byId = new Map(newest.songs.map(function (song) { return [song.id, song]; }));
+  const clashes = [];
+  const mine = Object.keys(draft.changed).concat(draft.deleted);
+  for (const id of mine) {
+    const was = draft.before[id];
+    const now = byId.get(id);
+    if (was && now && JSON.stringify(was) !== JSON.stringify(now)) clashes.push(now.t + " (" + now.n + ")");
+    if (was && !now) clashes.push(was.t + " (" + was.n + ") — deleted online");
+  }
+  return clashes;
+}
+
+// ---------- drawing ----------
+function h(tag, props) {
+  const el = document.createElement(tag);
+  let value;
+  for (const key in (props || {})) {
+    const v = props[key];
+    if (v == null || v === false) continue;
+    if (key === "class") el.className = v;
+    else if (key === "value") value = v;
+    else if (key.slice(0, 2) === "on") el.addEventListener(key.slice(2), v);
+    else if (key === "checked" || key === "disabled" || key === "hidden") el[key] = true;
+    else el.setAttribute(key, v);
+  }
+  for (let i = 2; i < arguments.length; i++) {
+    const kids = Array.isArray(arguments[i]) ? arguments[i] : [arguments[i]];
+    for (const kid of kids) {
+      if (kid == null || kid === false) continue;
+      el.appendChild(kid.nodeType ? kid : document.createTextNode(String(kid)));
+    }
+  }
+  if (value !== undefined) el.value = value;
+  return el;
+}
+const $ = function (id) { return document.getElementById(id); };
+
+let toastTimer = 0;
+function toast(text) {
+  document.querySelectorAll(".toast").forEach(function (old) { old.remove(); });
+  const el = h("div", { class: "toast" }, text);
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.remove(); }, 5200);
+}
+
+function sheet(build) {
+  const shade = h("div", { class: "shade" });
+  const close = function () { shade.remove(); };
+  shade.addEventListener("click", function (event) { if (event.target === shade) close(); });
+  const box = h("div", { class: "sheet" });
+  build(box, close);
+  shade.appendChild(box);
+  document.body.appendChild(shade);
+  return close;
+}
+
+function paintStatus() {
+  const book = source();
+  const changes = countChanges();
+  let text = busy;
+  if (!text) {
+    if (!book) text = "No book loaded yet";
+    else {
+      text = (online ? "Online version " : "Saved copy, version ") + (book.rev || 1) + (book.updated ? " • " + book.updated : "");
+      if (changes.total) text += " • " + (changes.whole ? "whole book replaced" : changes.total + " change" + (changes.total > 1 ? "s" : "") + " not published");
+    }
+  }
+  $("status").textContent = text;
+  $("publish").disabled = !changes.total || !!busy;
+}
+
+function route() {
+  const hash = decodeURIComponent(location.hash.slice(1));
+  const cut = hash.indexOf("=");
+  return cut < 0 ? { name: hash, arg: "" } : { name: hash.slice(0, cut), arg: hash.slice(cut + 1) };
+}
+function go(hash) { if (location.hash.slice(1) === hash) render(); else location.hash = hash; }
+
+let formDirty = false;
+function render() {
+  const where = route();
+  const app = $("app");
+  app.textContent = "";
+  document.querySelectorAll(".actions").forEach(function (old) { old.remove(); });
+  formDirty = false;
+  const inner = where.name === "edit" || where.name === "new" || where.name === "setup";
+  $("back").hidden = !inner || (where.name === "setup" && !source());
+  $("heading").textContent = where.name === "setup" ? "Connection" : where.name === "new" ? "New" : where.name === "edit" ? "Edit" : "ደብረ ብሥራት — Editor";
+  paintStatus();
+
+  if (where.name === "setup" || (!source() && !conn.owner)) return drawSetup(app);
+  if (!source()) return drawNoBook(app);
+  if (where.name === "edit") return drawForm(app, where.arg, null);
+  if (where.name === "new") return drawForm(app, null, where.arg === "wereb" ? "wereb" : "mezmur");
+  drawList(app);
+}
+
+// ---------- the connection page ----------
+function drawSetup(app) {
+  const owner = h("input", { class: "field", value: conn.owner, autocomplete: "off", autocapitalize: "none", spellcheck: "false", placeholder: "for example  debrebisrat" });
+  const repo = h("input", { class: "field", value: conn.repo, autocomplete: "off", autocapitalize: "none", spellcheck: "false", placeholder: "for example  mezmur" });
+  const token = h("input", { class: "field", type: "password", value: conn.token, autocomplete: "off", placeholder: "starts with  github_pat_" });
+  const show = h("input", { type: "checkbox", onchange: function () { token.type = show.checked ? "text" : "password"; } });
+  app.appendChild(h("div", { class: "card" },
+    h("h2", null, "Connect to the online book"),
+    h("p", { class: "hint" }, "The book is kept in a GitHub repository. Fill this in once on each phone or computer you use. The step-by-step guide is in ONLINE_GUIDE.md."),
+    h("label", { class: "f" }, "GitHub user name"), owner,
+    h("label", { class: "f" }, "Repository name"), repo,
+    h("label", { class: "f" }, "Key ", h("small", null, "(your own key, with Contents: Read and write)")), token,
+    h("label", { class: "check", style: "margin-top:8px" }, show, "Show the key"),
+    h("p", { class: "hint" }, "The key is saved only in this browser, on this device. Never send it to anyone and never put it in a message."),
+    h("div", { class: "foot", style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:16px" },
+      h("button", { class: "btn main", onclick: function () {
+        conn = { owner: owner.value.trim(), repo: repo.value.trim(), token: token.value.trim() };
+        if (!conn.owner || !conn.repo) return toast("Write the user name and the repository name.");
+        remember("conn", conn);
+        go("");
+        loadOnline(false);
+      } }, "Save and read the book"),
+      conn.token ? h("button", { class: "btn danger", onclick: function () {
+        conn.token = ""; remember("conn", conn); toast("The key was removed from this device."); render();
+      } }, "Forget the key on this device") : null)));
+  app.appendChild(h("div", { class: "card" },
+    h("h2", null, "No internet now?"),
+    h("p", { class: "hint" }, "You can open a backup file of the book and edit it. Publish later, when you are online."),
+    h("button", { class: "btn", style: "margin-top:10px", onclick: pickFile }, "Open a backup file")));
+}
+
+function drawNoBook(app) {
+  app.appendChild(h("div", { class: "card" },
+    h("h2", null, busy ? "Reading…" : "No book yet"),
+    h("p", { class: "hint" }, busy ? "Please wait." : "The book could not be read from " + conn.owner + "/" + conn.repo + ". Check the connection, or open a backup file."),
+    h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:12px" },
+      h("button", { class: "btn main", onclick: function () { loadOnline(false); } }, "Try again"),
+      h("button", { class: "btn", onclick: function () { go("setup"); } }, "Connection"),
+      h("button", { class: "btn", onclick: pickFile }, "Open a backup file"))));
+}
+
+// ---------- the list ----------
+function drawList(app) {
+  const book = source();
+  const all = rows();
+  const mezmurCount = all.filter(function (row) { return row.song.k !== "wereb" && row.state !== "deleted"; }).length;
+  const werebCount = all.filter(function (row) { return row.song.k === "wereb" && row.state !== "deleted"; }).length;
+
+  if (!storageWorks) app.appendChild(h("div", { class: "warn" }, "This browser does not keep data for this page. Your changes will be lost if you close the page before you publish."));
+  if (!conn.token && conn.owner) app.appendChild(h("div", { class: "warn" }, "No key on this device. You can edit this saved copy, but to read the newest book and to publish you must add the key: menu → Connection."));
+
+  const listBox = h("div", { class: "rows" });
+  const paint = function () {
+    listBox.textContent = "";
+    const query = listState.query.trim().toLowerCase();
+    const shown = all.filter(function (row) {
+      const song = row.song;
+      if ((song.k === "wereb") !== (listState.kind === "wereb")) return false;
+      if (listState.mine && !row.state) return false;
+      if (listState.kind !== "wereb" && listState.section && song.c !== listState.section) return false;
+      if (!query) return true;
+      return String(song.n) === query || song.t.toLowerCase().indexOf(query) >= 0 || song.l.toLowerCase().indexOf(query) >= 0;
+    });
+    if (!shown.length) listBox.appendChild(h("div", { class: "empty" }, "Nothing here."));
+    for (const row of shown) {
+      const song = row.song;
+      const under = song.k === "wereb" ? (song.o || "ወረብ") : song.c.replace(" መዝሙር", "") + (song.w ? " • " + song.w : "");
+      listBox.appendChild(h("button", { class: "row" + (row.state === "deleted" ? " gone" : ""), onclick: function () {
+        listState.scroll = window.scrollY;
+        if (row.state === "deleted") askRestore(song); else go("edit=" + song.id);
+      } },
+        h("span", { class: "num" }, song.n),
+        h("span", { class: "what" }, h("div", { class: "title" }, song.t), h("div", { class: "sub" }, under)),
+        song.a && !row.state ? h("span", { class: "tag" }, "sound") : null,
+        row.state ? h("span", { class: "tag " + row.state }, row.state) : null));
+    }
+  };
+
+  const sections = h("select", { class: "field grow", onchange: function () { listState.section = sections.value; paint(); } },
+    h("option", { value: "" }, "All sections"),
+    (book.categories || []).map(function (name) { return h("option", { value: name }, name); }));
+  sections.value = listState.section;
+  sections.hidden = listState.kind === "wereb";
+
+  const tab = function (kind, label) {
+    return h("button", { class: listState.kind === kind ? "on" : "", onclick: function () { listState.kind = kind; listState.scroll = 0; render(); } }, label);
+  };
+  const search = h("input", { class: "field grow", type: "search", placeholder: "Search title, words or number", value: listState.query,
+    oninput: function () { listState.query = search.value; paint(); } });
+  const mine = h("input", { type: "checkbox", onchange: function () { listState.mine = mine.checked; paint(); } });
+  mine.checked = listState.mine;
+
+  app.appendChild(h("div", { class: "tools" },
+    h("div", { class: "tabs" }, tab("mezmur", "መዝሙር " + mezmurCount), tab("wereb", "ወረብ " + werebCount)),
+    h("button", { class: "btn main", onclick: function () { listState.scroll = window.scrollY; go("new=" + listState.kind); } }, "+ New")));
+  app.appendChild(h("div", { class: "tools" }, search, sections));
+  app.appendChild(h("div", { class: "tools" }, h("label", { class: "check" }, mine, "Show only my changes")));
+  app.appendChild(listBox);
+  paint();
+  window.scrollTo(0, listState.scroll);
+}
+
+function askRestore(song) {
+  sheet(function (box, close) {
+    box.appendChild(h("h2", null, "Bring it back?"));
+    box.appendChild(h("p", { class: "hint" }, "“" + song.t + "” is marked to be deleted when you publish."));
+    box.appendChild(h("div", { class: "foot" },
+      h("button", { class: "btn", onclick: close }, "Leave it deleted"),
+      h("button", { class: "btn main", onclick: function () {
+        draft.deleted = draft.deleted.filter(function (id) { return id !== song.id; });
+        delete draft.before[song.id];
+        keepDraft(); close(); render();
+      } }, "Bring it back")));
+  });
+}
+
+// ---------- the form ----------
+function cleanText(text) {
+  return text.replace(/\r\n?/g, "\n").split("\n").map(function (line) { return line.replace(/\s+$/, ""); }).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** The picture of a mezmur comes from whom it is for. Among the pictures of that name, the least used one. */
+function pictureFor(book, name, exceptId) {
+  if (!name) return "";
+  const uses = {};
+  for (const song of book.songs) if (song.w === name && song.img && song.id !== exceptId) uses[song.img] = (uses[song.img] || 0) + 1;
+  const options = Object.keys(uses).sort(function (a, b) { return (uses[a] - uses[b]) || a.localeCompare(b); });
+  if (options.length) return options[0];
+  const entry = (book.names || []).find(function (item) { return item.n === name; });
+  return entry ? (entry.img || "") : "";
+}
+
+function drawForm(app, id, newKind) {
+  const book = source();
+  const original = id ? book.songs.find(function (song) { return song.id === id; }) : null;   // as it is online
+  const mineNow = id ? (draft.changed[id] || original) : null;
+  if (id && !mineNow) { go(""); return; }
+  const isNew = !id;
+  const song = mineNow ? Object.assign({}, mineNow) : {
+    id: "", n: 0, t: "", c: newKind === "wereb" ? "ወረብ" : (listState.section || (book.categories || [])[0] || ""),
+    s: "", l: "", tr: "", k: newKind, o: "", a: "", w: "", w2: "", ch: 0, img: "",
+  };
+  const wereb = song.k === "wereb";
+  if (isNew) {
+    const same = rows().filter(function (row) { return (row.song.k === "wereb") === wereb; });
+    song.n = same.reduce(function (most, row) { return Math.max(most, row.song.n); }, 0) + 1;
+  }
+  $("heading").textContent = isNew ? (wereb ? "New wereb" : "New mezmur") : song.t;
+
+  const dirty = function () { formDirty = true; };
+  const field = function (props) { return h("input", Object.assign({ class: "field", oninput: dirty }, props)); };
+  const names = (book.names || []).map(function (item) { return item.n; });
+  const nameSelect = function (value) {
+    const select = h("select", { class: "field", onchange: dirty },
+      h("option", { value: "" }, "— none —"),
+      names.map(function (name) { return h("option", { value: name }, name); }),
+      value && names.indexOf(value) < 0 ? h("option", { value: value }, value) : null);
+    select.value = value || "";
+    return select;
+  };
+
+  const title = field({ value: song.t });
+  const number = field({ value: song.n, type: "number", min: "1", inputmode: "numeric" });
+  const section = h("select", { class: "field", onchange: dirty }, (book.categories || []).map(function (name) { return h("option", { value: name }, name); }));
+  section.value = song.c;
+  const words = h("textarea", { class: "field words", oninput: dirty, spellcheck: "false" });
+  words.value = song.l;
+  const translation = h("textarea", { class: "field", oninput: dirty, spellcheck: "false" });
+  translation.value = song.tr || "";
+  const sound = field({ value: song.a || "", type: "url", inputmode: "url", autocapitalize: "none", placeholder: "https://…  (leave empty when there is no recording)" });
+  const whom = nameSelect(song.w);
+  const also = nameSelect(song.w2);
+  const chorus = h("input", { type: "checkbox", onchange: dirty });
+  chorus.checked = song.ch === 1;
+  const occasion = field({ value: song.o || "" });
+  const singer = field({ value: song.s || "" });
+  const errors = h("div", { class: "error" });
+
+  const card = h("div", { class: "card" },
+    h("label", { class: "f" }, "Title ", h("small", null, "ርዕስ")), title,
+    h("div", { class: "two" },
+      h("div", null, h("label", { class: "f" }, "Number ", h("small", null, "ቁጥር")), number),
+      wereb ? h("div", null, h("label", { class: "f" }, "When it is sung ", h("small", null, "በዓል / ዕለት")), occasion)
+            : h("div", null, h("label", { class: "f" }, "Section ", h("small", null, "ክፍል")), section)),
+    h("label", { class: "f" }, "Words ", h("small", null, "ግጥም")), words,
+    h("details", null, h("summary", null, "How to write the words"),
+      h("p", null, "Leave an empty line between verses."),
+      h("p", null, "A line with only ", h("code", null, "አዝ"), " means: sing the chorus here."),
+      h("p", null, "Write ", h("code", null, "(2)"), " at the end of a line that is sung twice."),
+      h("p", null, "For answering words write ", h("code", null, "line || answer"), " — the answer is shown on the right.")),
+    wereb ? null : h("label", { class: "check", style: "margin-top:12px" }, chorus, "The first verse is the chorus (አዝማች)"),
+    h("label", { class: "f" }, "Translation ", h("small", null, "ትርጉም — may be empty")), translation,
+    h("div", { class: "two" },
+      h("div", null, h("label", { class: "f" }, "For whom ", h("small", null, "this chooses the picture")), whom),
+      h("div", null, h("label", { class: "f" }, "Also for ", h("small", null, "a second name, if any")), also)),
+    h("label", { class: "f" }, "Recording link ", h("small", null, "ድምፅ")), sound,
+    h("p", { class: "hint" }, "A direct link to the sound file. For Dropbox the link must end with dl=1 (it is corrected for you)."),
+    wereb ? h("div", null, h("label", { class: "f" }, "Composer ", h("small", null, "for example ቅዱስ ያሬድ")), singer) : null,
+    errors);
+  app.appendChild(card);
+
+  const save = function () {
+    const next = Object.assign({}, song, {
+      t: title.value.trim().replace(/\s+/g, " "),
+      n: parseInt(number.value, 10) || 0,
+      c: wereb ? "ወረብ" : section.value,
+      l: cleanText(words.value),
+      tr: cleanText(translation.value),
+      a: sound.value.trim(),
+      w: whom.value, w2: also.value === whom.value ? "" : also.value,
+      ch: !wereb && chorus.checked ? 1 : 0,
+      o: wereb ? occasion.value.trim() : "",
+      s: wereb ? singer.value.trim() : (song.s || ""),
+    });
+    if (/dropbox\.com/.test(next.a)) next.a = next.a.replace(/([?&])dl=0\b/, "$1dl=1");
+    const problems = [];
+    if (!next.t) problems.push("Write the title.");
+    if (next.l.length < 10) problems.push("Write the words.");
+    if (next.n < 1) problems.push("The number must be 1 or more.");
+    if (next.a && !/^https?:\/\//.test(next.a)) problems.push("The recording link must start with https://");
+    if (problems.length) { errors.textContent = problems.join(" "); errors.scrollIntoView({ block: "center" }); return; }
+
+    if (isNew) next.id = "web" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+    if (isNew || next.w !== (mineNow ? mineNow.w : "")) next.img = pictureFor(applyDraft(Object.assign({}, book, { songs: book.songs.slice() }), draft), next.w, next.id);
+
+    const twin = rows().find(function (row) {
+      return row.song.id !== next.id && row.state !== "deleted" && (row.song.k === "wereb") === wereb && row.song.n === next.n;
+    });
+
+    if (original && JSON.stringify(original) === JSON.stringify(next)) {
+      delete draft.changed[next.id];      // back to what is online: not a change any more
+      delete draft.before[next.id];
+    } else {
+      draft.changed[next.id] = next;
+      if (original && !draft.before[next.id]) draft.before[next.id] = original;
+    }
+    keepDraft();
+    formDirty = false;
+    toast(twin ? "Saved. Note: number " + next.n + " is also used by “" + twin.song.t + "”." : "Saved on this device. Press Publish to send it to everyone.");
+    go("");
+  };
+
+  const buttons = [h("button", { class: "btn main", onclick: save }, isNew ? "Add" : "Save")];
+  if (!isNew && original && draft.changed[id]) buttons.push(h("button", { class: "btn", onclick: function () {
+    delete draft.changed[id]; delete draft.before[id]; keepDraft(); toast("Your changes to this one were removed."); go("");
+  } }, "Undo my changes"));
+  if (!isNew) buttons.push(h("button", { class: "btn danger", onclick: function () {
+    sheet(function (box, close) {
+      box.appendChild(h("h2", null, "Delete “" + song.t + "”?"));
+      box.appendChild(h("p", { class: "hint" }, "It disappears from every phone after you publish. Until then you can bring it back from the list."));
+      box.appendChild(h("div", { class: "foot" },
+        h("button", { class: "btn", onclick: close }, "Cancel"),
+        h("button", { class: "btn danger", onclick: function () {
+          delete draft.changed[id];
+          if (original) {
+            if (draft.deleted.indexOf(id) < 0) draft.deleted.push(id);
+            if (!draft.before[id]) draft.before[id] = original;
+          }
+          keepDraft(); close(); formDirty = false; go("");
+        } }, "Delete")));
+    });
+  } }, "Delete"));
+  document.body.appendChild(h("div", { class: "actions" }, h("div", { class: "in" }, buttons)));
+}
+
+// ---------- publish, menu, files ----------
+function openPublish() {
+  const changes = countChanges();
+  if (!changes.total) return;
+  if (!conn.token) { toast("Add the key first: menu → Connection."); return; }
+  sheet(function (box, close) {
+    const note = h("input", { class: "field", placeholder: "for example: 3 new mezmurs for ጥምቀት", maxlength: "120" });
+    const progress = h("p", { class: "hint" });
+    const lines = [];
+    if (changes.whole) lines.push("The whole book is replaced by the file you opened.");
+    if (changes.added) lines.push(changes.added + " new");
+    if (changes.edited) lines.push(changes.edited + " changed");
+    if (changes.deleted) lines.push(changes.deleted + " deleted");
+    const send = h("button", { class: "btn main" }, "Publish now");
+    const cancel = h("button", { class: "btn", onclick: close }, "Cancel");
+    const clashBox = h("div");
+    box.appendChild(h("h2", null, "Publish to everyone"));
+    box.appendChild(h("ul", { class: "list" }, lines.map(function (line) { return h("li", null, line); })));
+    box.appendChild(h("p", { class: "hint" }, "Every phone with the app gets this within about a day (or at once with “check now” in the app's settings)."));
+    box.appendChild(h("label", { class: "f" }, "Note ", h("small", null, "what changed — optional")));
+    box.appendChild(note);
+    box.appendChild(clashBox);
+    box.appendChild(progress);
+    box.appendChild(h("div", { class: "foot" }, cancel, send));
+
+    let checked = false;
+    send.addEventListener("click", async function () {
+      send.disabled = true; cancel.disabled = true;
+      busy = "Publishing…"; paintStatus();
+      try {
+        if (!checked) {
+          progress.textContent = "Checking what is online…";
+          const clashes = await findClashes();
+          checked = true;
+          if (clashes.length) {
+            clashBox.appendChild(h("div", { class: "warn", style: "margin-top:12px" },
+              "Someone else also changed these after you read the book. If you continue, your version replaces theirs:",
+              h("ul", { class: "list" }, clashes.map(function (name) { return h("li", null, name); }))));
+            send.textContent = "Publish mine anyway";
+            progress.textContent = "";
+            send.disabled = false; cancel.disabled = false;
+            busy = ""; paintStatus();
+            return;
+          }
+        }
+        const rev = await publish(note.value.trim(), function (step) { progress.textContent = step; });
+        busy = "";
+        close();
+        render();
+        toast("Published. The online book is now version " + rev + ".");
+      } catch (problem) {
+        busy = "";
+        progress.textContent = "";
+        progress.appendChild(h("span", { class: "error" }, problem.message));
+        send.disabled = false; cancel.disabled = false;
+        send.textContent = "Try again";
+        paintStatus();
+      }
+    });
+  });
+}
+
+function download(name, text) {
+  const link = h("a", { href: URL.createObjectURL(new Blob([text], { type: "application/json" })), download: name });
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(function () { URL.revokeObjectURL(link.href); link.remove(); }, 2000);
+}
+
+function pickFile() {
+  const input = h("input", { type: "file", accept: ".json,application/json" });
+  input.addEventListener("change", function () {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      try {
+        const book = JSON.parse(reader.result);
+        if (!Array.isArray(book.songs) || !Array.isArray(book.categories) || !book.songs.length || !book.songs[0].id) throw new Error("not a book");
+        draft = emptyDraft();
+        draft.whole = book;
+        keepDraft();
+        toast("Opened " + book.songs.length + " mezmurs from the file. When you publish, this file replaces the whole online book.");
+        go("");
+      } catch (problem) {
+        toast("This file is not a mezmur book (mezmurs.json).");
+      }
+    };
+    reader.readAsText(file, "utf-8");
+  });
+  input.click();
+}
+
+function openMenu() {
+  sheet(function (box, close) {
+    const item = function (title, detail, action) {
+      return h("button", { onclick: function () { close(); action(); } }, title, h("small", null, detail));
+    };
+    const changes = countChanges();
+    box.appendChild(h("h2", null, "Menu"));
+    box.appendChild(h("div", { class: "menu" },
+      item("Connection", conn.owner ? conn.owner + "/" + conn.repo + (conn.token ? " • key saved" : " • no key") : "not set", function () { go("setup"); }),
+      item("Read again from online", "Gets the newest book. Your unpublished changes are kept.", function () { loadOnline(false); }),
+      item("Download a backup copy", "Saves the book, with your changes, as a file on this device.", function () {
+        const book = source();
+        if (!book) return toast("There is no book to save.");
+        const copy = applyDraft(Object.assign({}, book, { songs: book.songs.slice() }), draft);
+        download("mezmurs-backup-v" + (copy.rev || 1) + "-" + today() + ".json", JSON.stringify(copy));
+      }),
+      item("Open a backup file", "Replaces the whole book with a file. Use it to go back to an older copy.", pickFile),
+      changes.total ? item("Throw away my changes", changes.total + " unpublished change" + (changes.total > 1 ? "s" : "") + " on this device", function () {
+        sheet(function (inner, shut) {
+          inner.appendChild(h("h2", null, "Throw away your changes?"));
+          inner.appendChild(h("p", { class: "hint" }, "Everything you did and have not published is removed from this device. The online book is not touched."));
+          inner.appendChild(h("div", { class: "foot" },
+            h("button", { class: "btn", onclick: shut }, "Keep them"),
+            h("button", { class: "btn danger", onclick: function () { draft = emptyDraft(); keepDraft(); shut(); render(); } }, "Throw away")));
+        });
+      }) : null));
+  });
+}
+
+$("publish").addEventListener("click", openPublish);
+$("menu").addEventListener("click", openMenu);
+$("back").addEventListener("click", function () {
+  if (formDirty && !confirm("Leave without saving what you typed?")) return;
+  formDirty = false;
+  go("");
+});
+window.addEventListener("hashchange", function () { render(); });
+window.addEventListener("beforeunload", function (event) { if (formDirty) { event.preventDefault(); event.returnValue = ""; } });
+
+// sw.js keeps a copy of this page in the browser, so it also opens without internet.
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "127.0.0.1" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("sw.js").catch(function () {});
+}
+
+render();
+loadOnline(true);
+</script>
+</body>
+</html>
