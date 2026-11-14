@@ -79,6 +79,36 @@
   .actions .in { max-width: 860px; margin: 0 auto; display: flex; gap: 8px; flex-wrap: wrap; }
   .actions .btn.main { flex: 1; }
 
+  /* the words, part by part */
+  .wordshead { display: flex; align-items: center; gap: 10px; }
+  .seg { display: inline-flex; background: var(--tint); border-radius: 999px; padding: 3px; }
+  .seg button { border: 0; background: transparent; border-radius: 999px; padding: 7px 14px; color: var(--soft); font-weight: 600; font-size: 14px; }
+  .seg button.on { background: var(--navy); color: #fff; }
+  .part { border: 1px solid var(--line); border-radius: 16px; padding: 10px; margin-top: 10px; background: var(--bg); }
+  .part.chorus { border: 2px solid var(--gold); background: var(--warn-bg); }
+  .part.mark { border-style: dashed; padding-bottom: 4px; }
+  .parthead { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .plabel { font-weight: 700; font-size: 14px; flex: none; min-width: 54px; }
+  .part.chorus .plabel { color: var(--gold-deep); }
+  .parthead .plabel { flex: 1; }
+  .seg.kind { display: flex; margin-bottom: 8px; background: var(--card); border: 1px solid var(--line); }
+  .seg.kind button { flex: 1; padding: 8px 6px; font-size: 15px; }
+  .part.chorus .seg.kind button.on { background: var(--gold); color: var(--navy-deep); }
+  .mini { flex: none; border: 1px solid var(--line); background: var(--card); border-radius: 10px; min-width: 36px; height: 36px; padding: 0 8px; font-size: 15px; }
+  .mini[disabled] { opacity: .35; }
+  .mini.danger { color: var(--danger); }
+  .part textarea.field { min-height: 92px; font-size: 17px; overflow: hidden; resize: none; }
+  .linetools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px; font-size: 13px; color: var(--soft); }
+
+  /* the preview */
+  .pverse { border-radius: 14px; padding: 10px 14px; margin-top: 10px; background: var(--bg); font-size: 17px; line-height: 1.8; font-family: Georgia, "Noto Serif Ethiopic", serif; }
+  .pverse.chorus { background: var(--warn-bg); border-left: 4px solid var(--gold); }
+  .pname { font: 700 12px system-ui, sans-serif; color: var(--gold-deep); margin-bottom: 2px; }
+  .pline { display: flex; gap: 12px; justify-content: space-between; }
+  .pline .answer { color: var(--gold-deep); text-align: right; flex: none; max-width: 45%; }
+  .times { font: 700 12px system-ui, sans-serif; background: var(--tint); border-radius: 999px; padding: 1px 7px; margin-left: 6px; }
+  .pmark { display: inline-block; margin-top: 10px; font-weight: 700; font-size: 13px; background: var(--gold); color: var(--navy-deep); border-radius: 999px; padding: 3px 12px; }
+
   .shade { position: fixed; inset: 0; background: rgba(4,10,24,.55); z-index: 20; display: grid; place-items: end center; }
   @media (min-width: 620px) { .shade { place-items: center; } }
   .sheet { background: var(--card); width: min(560px, 100%); max-height: 88vh; overflow: auto; border-radius: 22px 22px 0 0; padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); }
@@ -610,6 +640,87 @@ function pictureFor(book, name, exceptId) {
   return entry ? (entry.img || "") : "";
 }
 
+/*
+ * The parts of a mezmur. The words are kept as plain text (an empty line between
+ * verses, a line "አዝ" where the chorus is sung again) and one number, "ch", that says
+ * which verse is the አዝማች. Here they are taken apart so each part can be edited alone.
+ *
+ *   { type: "verse" | "chorus" | "mark", text }      "mark" = sing the chorus here
+ */
+const MARK = /^አዝ(ማች)?[\s.…_\-=•፡]*$/;
+const REPEAT = /\(\s*(\d+|[፩-፱])\s*(?:ጊዜ)?\s*\)/g;
+
+function toParts(text, chorusAt) {
+  const parts = [];
+  let lines = [];
+  const endVerse = function () {
+    if (lines.length) { parts.push({ type: "verse", text: lines.join("\n") }); lines = []; }
+  };
+  for (const raw of text.replace(/\r\n?/g, "\n").split("\n")) {
+    const line = raw.trim();
+    if (!line) endVerse();
+    else if (MARK.test(line)) { endVerse(); parts.push({ type: "mark", text: "" }); }
+    else lines.push(line);
+  }
+  endVerse();
+  // The same rule as in the app: the verse named by "ch"; without it the first verse, when there are "አዝ" marks.
+  const verses = parts.filter(function (part) { return part.type === "verse"; });
+  const marked = parts.some(function (part) { return part.type === "mark"; });
+  const which = verses.length < 2 ? 0 : (chorusAt >= 1 && chorusAt <= verses.length) ? chorusAt : (marked ? 1 : 0);
+  if (which) verses[which - 1].type = "chorus";
+  return parts;
+}
+
+function fromParts(parts) {
+  const out = [];
+  let verse = 0, chorusAt = 0, marked = false;
+  for (const part of parts) {
+    if (part.type === "mark") { out.push("አዝ"); marked = true; continue; }
+    const text = cleanText(part.text);
+    if (!text) continue;
+    verse += text.split(/\n\s*\n/).length;
+    if (part.type === "chorus") chorusAt = verse;
+    out.push(text);
+  }
+  return { text: out.join("\n\n"), chorusAt: chorusAt, marked: marked };
+}
+
+/** One line as the app shows it: "(2)" as a small ×2, and answering words on the right. */
+function previewLine(line) {
+  const cut = line.indexOf(" || ");
+  const main = cut < 0 ? line : line.slice(0, cut);
+  const answer = cut < 0 ? "" : line.slice(cut + 4);
+  const pieces = [];
+  let at = 0;
+  main.replace(REPEAT, function (found, count, where) {
+    pieces.push(main.slice(at, where).replace(/\s+$/, ""));
+    pieces.push(h("span", { class: "times" }, "×" + count));
+    at = where + found.length;
+    return found;
+  });
+  pieces.push(main.slice(at));
+  return h("div", { class: "pline" }, h("span", null, pieces), answer ? h("span", { class: "answer" }, answer) : null);
+}
+
+function openPreview(title, parts, translation) {
+  sheet(function (box, close) {
+    box.appendChild(h("h2", null, title || "Preview"));
+    box.appendChild(h("p", { class: "hint" }, "This is how the parts will be shown in the app."));
+    let number = 0;
+    for (const part of parts) {
+      if (part.type === "mark") { box.appendChild(h("div", { class: "pmark" }, "አዝ…")); continue; }
+      const text = cleanText(part.text);
+      if (!text) continue;
+      const chorus = part.type === "chorus";
+      box.appendChild(h("div", { class: "pverse" + (chorus ? " chorus" : "") },
+        h("div", { class: "pname" }, chorus ? "አዝማች" : String(++number)),
+        text.split("\n").filter(function (line) { return line.trim(); }).map(previewLine)));
+    }
+    if (translation) box.appendChild(h("div", { class: "pverse" }, h("div", { class: "pname" }, "ትርጉም"), h("div", null, translation)));
+    box.appendChild(h("div", { class: "foot" }, h("button", { class: "btn main", onclick: close }, "Close")));
+  });
+}
+
 function drawForm(app, id, newKind) {
   const book = source();
   const original = id ? book.songs.find(function (song) { return song.id === id; }) : null;   // as it is online
@@ -643,54 +754,204 @@ function drawForm(app, id, newKind) {
   const number = field({ value: song.n, type: "number", min: "1", inputmode: "numeric" });
   const section = h("select", { class: "field", onchange: dirty }, (book.categories || []).map(function (name) { return h("option", { value: name }, name); }));
   section.value = song.c;
-  const words = h("textarea", { class: "field words", oninput: dirty, spellcheck: "false" });
-  words.value = song.l;
   const translation = h("textarea", { class: "field", oninput: dirty, spellcheck: "false" });
   translation.value = song.tr || "";
   const sound = field({ value: song.a || "", type: "url", inputmode: "url", autocapitalize: "none", placeholder: "https://…  (leave empty when there is no recording)" });
   const whom = nameSelect(song.w);
   const also = nameSelect(song.w2);
-  const chorus = h("input", { type: "checkbox", onchange: dirty });
-  chorus.checked = song.ch === 1;
   const occasion = field({ value: song.o || "" });
   const singer = field({ value: song.s || "" });
   const errors = h("div", { class: "error" });
 
-  const card = h("div", { class: "card" },
-    h("label", { class: "f" }, "Title ", h("small", null, "ርዕስ")), title,
+  // ----- the words, part by part -----
+  let parts = toParts(song.l, song.ch || 0);
+  if (!parts.length) parts = [{ type: "verse", text: "" }];
+  let mode = "parts";
+  let chorusKept = song.ch || 0;      // which verse is the chorus, while the words are shown as plain text
+  const partsBox = h("div");
+  const plain = h("textarea", { class: "field words", spellcheck: "false", oninput: dirty });
+  const wordsBox = h("div");
+
+  const grow = function (area) { area.style.height = "auto"; area.style.height = (area.scrollHeight + 4) + "px"; };
+
+  /** Changes the line the cursor is on (for the ×2 and the answer buttons). */
+  const onLine = function (area, change) {
+    const text = area.value;
+    const at = area.selectionStart;
+    const start = text.lastIndexOf("\n", at - 1) + 1;
+    let end = text.indexOf("\n", at);
+    if (end < 0) end = text.length;
+    const next = change(text.slice(start, end));
+    area.value = text.slice(0, start) + next + text.slice(end);
+    area.dispatchEvent(new Event("input"));
+    area.focus();
+    area.setSelectionRange(start + next.length, start + next.length);
+  };
+  const keepFocus = function (event) { event.preventDefault(); };
+
+  const paintParts = function () {
+    partsBox.textContent = "";
+    let verse = 0;
+    const areas = [];
+    parts.forEach(function (part, at) {
+      const label = part.type === "chorus" ? "አዝማች" : part.type === "mark" ? "አዝ" : "ግጥም " + (++verse);
+      // What this part is: one tap on one of three buttons.
+      const choice = function (type, text, explain) {
+        return h("button", { class: part.type === type ? "on" : "", title: explain, onclick: function () {
+          if (part.type === type) return;
+          if (type === "chorus") parts.forEach(function (other) { if (other.type === "chorus") other.type = "verse"; });   // only one chorus
+          part.type = type;
+          dirty(); paintParts();
+        } }, text);
+      };
+      const kind = h("div", { class: "seg kind" },
+        choice("verse", "ግጥም", "A verse"),
+        choice("chorus", "አዝማች", "The chorus"),
+        choice("mark", "አዝ", "Sing the chorus again here"));
+
+      const move = function (by) {
+        const to = at + by;
+        if (to < 0 || to >= parts.length) return;
+        parts.splice(to, 0, parts.splice(at, 1)[0]);
+        dirty(); paintParts();
+      };
+      const head = h("div", { class: "parthead" },
+        h("span", { class: "plabel" }, label),
+        h("button", { class: "mini", title: "Move up", "aria-label": "Move up", disabled: at === 0, onclick: function () { move(-1); } }, "↑"),
+        h("button", { class: "mini", title: "Move down", "aria-label": "Move down", disabled: at === parts.length - 1, onclick: function () { move(1); } }, "↓"),
+        h("button", { class: "mini", title: "Add a verse below", "aria-label": "Add a verse below", onclick: function () {
+          parts.splice(at + 1, 0, { type: "verse", text: "" }); dirty(); paintParts();
+        } }, "+"),
+        h("button", { class: "mini danger", title: "Remove this part", "aria-label": "Remove this part", onclick: function () {
+          if (part.type !== "mark" && part.text.trim() && !confirm("Remove this part and its words?")) return;
+          parts.splice(at, 1);
+          if (!parts.length) parts.push({ type: "verse", text: "" });
+          dirty(); paintParts();
+        } }, "✕"));
+
+      let body;
+      if (part.type === "mark") {
+        body = h("p", { class: "hint" }, "The chorus is sung again here.");
+      } else {
+        const area = h("textarea", { class: "field", spellcheck: "false", placeholder: at === 0 ? "Write or paste the words here. An empty line starts a new part." : "" });
+        area.value = part.text;
+        area.addEventListener("input", function () { part.text = area.value; dirty(); grow(area); });
+        // Pasted a whole mezmur into one box: when leaving the box, cut it into parts at the empty lines.
+        area.addEventListener("change", function () {
+          if (!/\n\s*\n/.test(area.value.trim())) return;
+          const pieces = toParts(area.value, 0);
+          if (part.type === "chorus" && pieces.length) pieces[0].type = "chorus";
+          else pieces.forEach(function (piece) { if (piece.type === "chorus") piece.type = "verse"; });
+          parts.splice.apply(parts, [at, 1].concat(pieces));
+          paintParts();
+        });
+        const times = function (count) {
+          return h("button", { class: "mini", onpointerdown: keepFocus, onclick: function () {
+            onLine(area, function (line) {
+              const bare = line.replace(/\s*\(\s*(\d+|[፩-፱])\s*(?:ጊዜ)?\s*\)\s*$/, "");
+              return count > 1 ? bare + " (" + count + ")" : bare;
+            });
+          } }, count > 1 ? "×" + count : "×1");
+        };
+        body = h("div", null, area,
+          h("div", { class: "linetools" }, "This line is sung:", times(1), times(2), times(3), times(4),
+            h("button", { class: "mini", onpointerdown: keepFocus, title: "Answering words, shown on the right", onclick: function () {
+              onLine(area, function (line) { return line.indexOf(" || ") >= 0 ? line : line.replace(/\s+$/, "") + " || "; });
+            } }, "+ answer")));
+        areas.push(area);
+      }
+      partsBox.appendChild(h("div", { class: "part " + part.type }, head, kind, body));
+    });
+    requestAnimationFrame(function () { areas.forEach(grow); });
+  };
+
+  const paintWords = function () {
+    wordsBox.textContent = "";
+    const tab = function (name, label) {
+      return h("button", { class: mode === name ? "on" : "", onclick: function () {
+        if (mode === name) return;
+        if (name === "plain") {
+          const now = fromParts(parts);
+          chorusKept = now.chorusAt;
+          plain.value = now.text;
+        } else {
+          parts = toParts(plain.value, chorusKept);
+          if (!parts.length) parts = [{ type: "verse", text: "" }];
+        }
+        mode = name;
+        paintWords();
+      } }, label);
+    };
+    wordsBox.appendChild(h("div", { class: "wordshead" },
+      h("label", { class: "f", style: "margin:0;flex:1" }, "Words ", h("small", null, "ግጥም")),
+      h("div", { class: "seg" }, tab("parts", "Parts"), tab("plain", "Plain text"))));
+    if (mode === "plain") {
+      wordsBox.appendChild(h("p", { class: "hint" }, "The whole mezmur as one text: an empty line between verses, a line with only አዝ where the chorus is sung again. To choose which verse is the chorus, go back to Parts."));
+      wordsBox.appendChild(plain);
+      return;
+    }
+    wordsBox.appendChild(h("p", { class: "hint" }, "Each box is one part. Tap what it is: ግጥም (a verse), አዝማች (the chorus), or አዝ (the place where the chorus is sung again)."));
+    paintParts();
+    wordsBox.appendChild(partsBox);
+    wordsBox.appendChild(h("div", { class: "tools", style: "margin-top:12px" },
+      h("button", { class: "btn small", onclick: function () { parts.push({ type: "verse", text: "" }); dirty(); paintParts(); } }, "+ Verse"),
+      h("button", { class: "btn small", onclick: function () { parts.push({ type: "mark", text: "" }); dirty(); paintParts(); } }, "+ አዝ here"),
+      h("button", { class: "btn small", title: "Puts አዝ after every verse", onclick: function () {
+        let kept = parts.filter(function (part) { return part.type !== "mark"; });
+        if (!kept.some(function (part) { return part.type === "chorus"; }) && kept.length) kept[0].type = "chorus";
+        parts = [];
+        kept.forEach(function (part) {
+          parts.push(part);
+          if (part.type === "verse" && part.text.trim()) parts.push({ type: "mark", text: "" });
+        });
+        dirty(); paintParts();
+      } }, "አዝ after every verse")));
+  };
+  paintWords();
+
+  const currentParts = function () {
+    if (mode === "plain") return toParts(plain.value, chorusKept);
+    return parts;
+  };
+
+  app.appendChild(h("div", { class: "card" },
+    h("label", { class: "f", style: "margin-top:0" }, "Title ", h("small", null, "ርዕስ")), title,
     h("div", { class: "two" },
       h("div", null, h("label", { class: "f" }, "Number ", h("small", null, "ቁጥር")), number),
       wereb ? h("div", null, h("label", { class: "f" }, "When it is sung ", h("small", null, "በዓል / ዕለት")), occasion)
-            : h("div", null, h("label", { class: "f" }, "Section ", h("small", null, "ክፍል")), section)),
-    h("label", { class: "f" }, "Words ", h("small", null, "ግጥም")), words,
-    h("details", null, h("summary", null, "How to write the words"),
-      h("p", null, "Leave an empty line between verses."),
-      h("p", null, "A line with only ", h("code", null, "አዝ"), " means: sing the chorus here."),
-      h("p", null, "Write ", h("code", null, "(2)"), " at the end of a line that is sung twice."),
-      h("p", null, "For answering words write ", h("code", null, "line || answer"), " — the answer is shown on the right.")),
-    wereb ? null : h("label", { class: "check", style: "margin-top:12px" }, chorus, "The first verse is the chorus (አዝማች)"),
-    h("label", { class: "f" }, "Translation ", h("small", null, "ትርጉም — may be empty")), translation,
+            : h("div", null, h("label", { class: "f" }, "Section ", h("small", null, "ክፍል")), section))));
+
+  app.appendChild(h("div", { class: "card" }, wordsBox));
+
+  app.appendChild(h("div", { class: "card" },
+    h("label", { class: "f", style: "margin-top:0" }, "Translation ", h("small", null, "ትርጉም — may be empty")), translation,
     h("div", { class: "two" },
       h("div", null, h("label", { class: "f" }, "For whom ", h("small", null, "this chooses the picture")), whom),
       h("div", null, h("label", { class: "f" }, "Also for ", h("small", null, "a second name, if any")), also)),
     h("label", { class: "f" }, "Recording link ", h("small", null, "ድምፅ")), sound,
     h("p", { class: "hint" }, "A direct link to the sound file. For Dropbox the link must end with dl=1 (it is corrected for you)."),
-    wereb ? h("div", null, h("label", { class: "f" }, "Composer ", h("small", null, "for example ቅዱስ ያሬድ")), singer) : null,
-    errors);
-  app.appendChild(card);
+    h("label", { class: "f" }, wereb ? "Composer " : "Singer or composer ", h("small", null, wereb ? "for example ቅዱስ ያሬድ" : "may be empty")), singer,
+    isNew ? null : h("p", { class: "hint" }, "Code of this mezmur: " + song.id + " (it never changes; favorites on phones use it)"),
+    errors));
 
   const save = function () {
+    const words = fromParts(currentParts());
+    // "ch" is left as it was when the first verse is the chorus only because of the "አዝ" marks
+    // (as in the book), and when there is only one verse (then the app shows no chorus anyway).
+    const verseCount = words.text ? words.text.split(/\n\s*\n/).filter(function (piece) { return !MARK.test(piece.trim()); }).length : 0;
+    const chorus = verseCount < 2 ? (song.ch || 0)
+      : (words.chorusAt === 1 && words.marked && !(song.ch > 0)) ? 0 : words.chorusAt;
     const next = Object.assign({}, song, {
       t: title.value.trim().replace(/\s+/g, " "),
       n: parseInt(number.value, 10) || 0,
       c: wereb ? "ወረብ" : section.value,
-      l: cleanText(words.value),
+      l: words.text,
       tr: cleanText(translation.value),
       a: sound.value.trim(),
       w: whom.value, w2: also.value === whom.value ? "" : also.value,
-      ch: !wereb && chorus.checked ? 1 : 0,
+      ch: chorus,
       o: wereb ? occasion.value.trim() : "",
-      s: wereb ? singer.value.trim() : (song.s || ""),
+      s: singer.value.trim(),
     });
     if (/dropbox\.com/.test(next.a)) next.a = next.a.replace(/([?&])dl=0\b/, "$1dl=1");
     const problems = [];
@@ -720,7 +981,10 @@ function drawForm(app, id, newKind) {
     go("");
   };
 
-  const buttons = [h("button", { class: "btn main", onclick: save }, isNew ? "Add" : "Save")];
+  const buttons = [
+    h("button", { class: "btn main", onclick: save }, isNew ? "Add" : "Save"),
+    h("button", { class: "btn", onclick: function () { openPreview(title.value.trim(), currentParts(), cleanText(translation.value)); } }, "Preview"),
+  ];
   if (!isNew && original && draft.changed[id]) buttons.push(h("button", { class: "btn", onclick: function () {
     delete draft.changed[id]; delete draft.before[id]; keepDraft(); toast("Your changes to this one were removed."); go("");
   } }, "Undo my changes"));
