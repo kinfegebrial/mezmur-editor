@@ -440,8 +440,38 @@ async function writeFile(path, text, sha, message) {
   if (!reply.ok) throw new Error(plainError(reply.status));
 }
 
+/*
+ * The fingerprint of a mezmur: a short code made from everything about it (title,
+ * words, section, picture ...). When anything changes, the code changes. The app makes
+ * the same code from the mezmurs on the phone, and compares: so before downloading it
+ * can say exactly which mezmurs are new, corrected or removed, each one only once, even
+ * when several versions were skipped. tools/online.py and the app (Fingerprint.kt) make
+ * the same code: FNV-1a of the fields below, joined by the character U+001F.
+ */
+function fingerprint(song) {
+  const text = function (value, missing) { return value == null ? missing : String(value); };
+  const whole = function (value) { return String(parseInt(value, 10) || 0); };
+  const fields = [text(song.id, ""), whole(song.n), text(song.t, ""), text(song.c, ""), text(song.s, ""), text(song.l, ""),
+    text(song.tr, ""), text(song.k, "mezmur"), text(song.o, ""), text(song.a, ""), text(song.img, ""), text(song.w, ""),
+    text(song.w2, ""), whole(song.ch)].join("\u001f");
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < fields.length; i++) {
+    hash ^= fields.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}
+
+/**
+ * The small file the app reads every day: the version, the note, how big the book is,
+ * and one line per mezmur (its code, fingerprint, title and number).
+ */
 function versionText(book) {
-  return JSON.stringify({ rev: book.rev || 1, updated: book.updated || "", songs: book.songs.length, note: book.note || "" });
+  return JSON.stringify({
+    rev: book.rev || 1, updated: book.updated || "", songs: book.songs.length, note: book.note || "",
+    size: new TextEncoder().encode(JSON.stringify(book)).length,
+    index: book.songs.map(function (song) { return [song.id, fingerprint(song), song.t, parseInt(song.n, 10) || 0]; }),
+  });
 }
 
 /** The small file the app reads first. Written again whenever it does not match the book. */
