@@ -1,6 +1,6 @@
 // Keeps a copy of the editor page in the browser, so the page also opens without internet.
 // With internet the newest page is always used; the saved copy is only for when there is none.
-const CACHE = "mezmur-editor-1";
+const CACHE = "mezmur-editor-2";
 
 self.addEventListener("install", function (event) {
   event.waitUntil(caches.open(CACHE).then(function (cache) { return cache.add("./"); }).then(function () { return self.skipWaiting(); }));

@@ -2,139 +2,257 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#081D42">
 <title>ደብረ ብሥራት — Mezmur editor</title>
 <style>
   :root {
-    --navy: #0F326A; --navy-deep: #081D42; --gold: #F2C25B; --gold-deep: #9A6A10;
+    --navy: #0F326A; --navy-deep: #081D42; --sky: #3F74D6; --gold: #F2C25B; --gold-deep: #9A6A10; --snow: #F7FAFF;
     --bg: #F5F8FE; --card: #FFFFFF; --text: #0E1A33; --soft: #4A5670; --line: #D6DEEE;
     --tint: #E7EEFB; --danger: #B3261E; --ok: #1B7466; --warn-bg: #FBEFD2; --warn-text: #3A2A05;
+    --shadow: 0 6px 22px rgba(15, 50, 106, .10);
+    --serif: Georgia, "Noto Serif Ethiopic", "Abyssinica SIL", "Nyala", serif;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0A1222; --card: #101A2E; --text: #E6ECF8; --soft: #B6C2DA; --line: #2A3856;
       --tint: #1A2744; --danger: #FF8A80; --ok: #7CCFC0; --warn-bg: #3F3212; --warn-text: #FBEFD2;
+      --gold-deep: #F2C25B; --shadow: 0 6px 22px rgba(0, 0, 0, .35);
     }
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
   html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, "Noto Sans Ethiopic", "Nyala", sans-serif; }
   button, input, select, textarea { font: inherit; color: inherit; }
   button { cursor: pointer; }
+  svg.i { width: 22px; height: 22px; fill: currentColor; flex: none; display: block; }
+  .blue { background: linear-gradient(125deg, var(--navy-deep), var(--navy) 62%, #1B4FA3); color: var(--snow); position: relative; overflow: hidden; }
+  /* the faint diamond lattice of the app, over every blue surface */
+  .blue::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .06;
+    background: repeating-linear-gradient(45deg, #fff 0 1px, transparent 1px 30px), repeating-linear-gradient(-45deg, #fff 0 1px, transparent 1px 30px); }
+  .blue > * { position: relative; }
 
-  header { position: sticky; top: 0; z-index: 5; background: linear-gradient(120deg, var(--navy-deep), var(--navy)); color: #F7FAFF; padding: 10px 14px 12px; border-radius: 0 0 20px 20px; }
-  .bar { display: flex; align-items: center; gap: 10px; max-width: 860px; margin: 0 auto; }
-  .bar h1 { font-size: 19px; margin: 0; flex: 1; font-family: Georgia, "Noto Serif Ethiopic", serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .status { max-width: 860px; margin: 2px auto 0; font-size: 13px; color: var(--gold); min-height: 18px; }
-  .iconbtn { background: rgba(255,255,255,.14); border: 0; color: #F7FAFF; border-radius: 999px; min-width: 42px; height: 42px; padding: 0 12px; font-size: 18px; }
-  .publish { background: var(--gold); color: var(--navy-deep); border: 0; border-radius: 999px; height: 42px; padding: 0 18px; font-weight: 700; }
-  .publish[disabled] { opacity: .45; cursor: default; }
+  /* ---------- the top bar ---------- */
+  #top { position: sticky; top: 0; z-index: 10; border-radius: 0 0 24px 24px; padding: calc(8px + env(safe-area-inset-top)) 14px 12px; box-shadow: var(--shadow); }
+  .bar { display: flex; align-items: center; gap: 10px; max-width: 1180px; margin: 0 auto; }
+  #logo { width: 44px; height: 44px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px var(--gold); }
+  .who { flex: 1; min-width: 0; }
+  #heading { font: 700 20px/1.2 var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #status { font-size: 12.5px; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 17px; }
+  .iconbtn { background: rgba(255,255,255,.15); border: 0; color: var(--snow); border-radius: 50%; width: 42px; height: 42px; display: grid; place-items: center; flex: none; }
+  .publish { background: linear-gradient(135deg, var(--gold), #E0A63A); color: var(--navy-deep); border: 0; border-radius: 999px; height: 42px; padding: 0 16px 0 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex: none; }
+  .publish[disabled] { opacity: .4; cursor: default; }
+  .publish b { background: var(--navy-deep); color: var(--gold); border-radius: 999px; min-width: 22px; height: 22px; padding: 0 6px; font-size: 12px; display: grid; place-items: center; }
+  #deskNav { display: none; gap: 4px; margin-right: 8px; }
+  #deskNav button { background: transparent; border: 0; color: var(--snow); opacity: .78; padding: 9px 14px; border-radius: 999px; font-weight: 600; display: flex; gap: 7px; align-items: center; }
+  #deskNav button.on { background: rgba(255,255,255,.16); opacity: 1; }
+  #deskNav svg.i { width: 19px; height: 19px; }
 
-  main { max-width: 860px; margin: 0 auto; padding: 14px 14px 110px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 14px; }
-  .card h2 { margin: 0 0 6px; font-size: 18px; }
+  /* ---------- the bottom tabs (phone) ---------- */
+  #tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9; background: var(--card); border-top: 1px solid var(--line); display: flex; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); }
+  #tabs button { flex: 1; background: transparent; border: 0; color: var(--soft); display: grid; justify-items: center; gap: 2px; font-size: 12px; font-weight: 600; padding: 4px 0; }
+  #tabs button span { display: grid; place-items: center; width: 58px; height: 30px; border-radius: 999px; }
+  #tabs button.on { color: var(--navy); }
+  #tabs button.on span { background: var(--tint); }
+  @media (prefers-color-scheme: dark) { #tabs button.on { color: var(--gold); } }
+  @media (min-width: 900px) { #tabs { display: none; } #deskNav { display: flex; } }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 120px; }
+  @media (min-width: 900px) { main { padding: 22px 22px 60px; } }
+  h2.sec { font: 700 19px/1.3 var(--serif); margin: 26px 0 12px; display: flex; align-items: center; gap: 10px; }
+  h2.sec::before { content: ""; width: 5px; height: 22px; border-radius: 9px; background: linear-gradient(var(--gold), var(--gold-deep)); }
+  h2.sec small { font: 400 13px system-ui, sans-serif; color: var(--soft); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .card h3 { margin: 0 0 4px; font: 700 17px var(--serif); }
   .hint { color: var(--soft); font-size: 14px; margin: 4px 0 0; }
-  .warn { background: var(--warn-bg); color: var(--warn-text); border-radius: 14px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
-
-  .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-  .tabs { display: flex; background: var(--tint); border-radius: 999px; padding: 4px; }
-  .tabs button { border: 0; background: transparent; border-radius: 999px; padding: 8px 14px; color: var(--soft); font-weight: 600; }
-  .tabs button.on { background: var(--navy); color: #fff; }
-  .field, select.field, textarea.field { width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; }
-  .field:focus { outline: 2px solid var(--gold); border-color: var(--gold); }
-  .grow { flex: 1 1 180px; }
-  .btn { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 10px 16px; font-weight: 600; }
+  .warn { background: var(--warn-bg); color: var(--warn-text); border-radius: 16px; padding: 11px 14px; margin-bottom: 14px; font-size: 14px; display: flex; gap: 10px; align-items: center; }
+  .field, select.field, textarea.field { width: 100%; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 11px 13px; }
+  .field:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(242,194,91,.28); }
+  .btn { border: 1.5px solid var(--line); background: var(--card); border-radius: 999px; padding: 10px 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; justify-content: center; }
+  .btn svg.i { width: 19px; height: 19px; }
   .btn.main { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .btn.gold { background: linear-gradient(135deg, var(--gold), #E0A63A); border-color: transparent; color: var(--navy-deep); }
   .btn.danger { color: var(--danger); }
-  .btn.small { padding: 6px 12px; font-size: 14px; }
-  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--soft); }
-  .check input { width: 20px; height: 20px; }
+  .btn.small { padding: 7px 12px; font-size: 14px; }
+  .btn[disabled] { opacity: .45; cursor: default; }
+  .rowwrap { display: flex; flex-wrap: wrap; gap: 8px; }
 
-  .rows { background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
-  .row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 11px 14px; }
+  /* ---------- home ---------- */
+  .hero { border-radius: 28px; padding: 22px 20px 20px; box-shadow: var(--shadow); }
+  .hero .over { font-size: 13px; color: var(--gold); font-weight: 700; letter-spacing: .02em; }
+  .hero h1 { font: 700 34px/1.15 var(--serif); margin: 4px 0 10px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; background: var(--gold); color: var(--navy-deep); border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: 13px; }
+  .hero .note { margin-top: 8px; font-size: 14px; opacity: .9; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-top: 16px; }
+  .stat { background: rgba(255,255,255,.12); border-radius: 16px; padding: 10px 4px; text-align: center; }
+  .stat b { display: block; font: 700 24px var(--serif); }
+  .stat span { font-size: 12px; color: var(--gold); }
+  .unsent { background: linear-gradient(135deg, var(--gold), #E0A63A); color: var(--navy-deep); border-radius: 22px; padding: 14px 16px; margin-top: 14px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow); }
+  .unsent .what { flex: 1; min-width: 0; }
+  .unsent b { font: 700 17px var(--serif); display: block; }
+  .unsent small { font-size: 13px; opacity: .85; }
+  .unsent .btn { border-color: transparent; background: var(--navy-deep); color: var(--gold); }
+  .quick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .quick button { border: 0; border-radius: 20px; padding: 14px; color: #fff; text-align: left; display: flex; align-items: center; gap: 10px; font-weight: 700; box-shadow: var(--shadow); }
+  .quick button svg.i { background: rgba(255,255,255,.24); border-radius: 50%; width: 36px; height: 36px; padding: 7px; }
+  .quick small { display: block; font-weight: 400; font-size: 12px; opacity: .85; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 10px; }
+  .tile { border: 0; border-radius: 20px; min-height: 84px; padding: 12px 14px; color: #fff; text-align: left; position: relative; overflow: hidden; box-shadow: var(--shadow); }
+  .tile b { font: 700 16px/1.25 var(--serif); display: block; }
+  .tile span { font-size: 12.5px; opacity: .88; }
+  .tile svg.i { position: absolute; right: -8px; bottom: -10px; width: 62px; height: 62px; opacity: .16; }
+  .checks button { display: flex; width: 100%; align-items: center; gap: 12px; background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 12px 2px; text-align: left; }
+  .checks button:last-child { border-bottom: 0; }
+  .checks b { margin-left: auto; background: var(--tint); border-radius: 999px; padding: 2px 11px; font-size: 14px; }
+  .dot { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #fff; flex: none; }
+
+  /* ---------- the list ---------- */
+  .tools { position: sticky; top: 74px; z-index: 5; background: var(--bg); padding: 4px 0 10px; margin: -4px 0 4px; }
+  .searchbox { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1.5px solid var(--line); border-radius: 999px; padding: 4px 6px 4px 14px; box-shadow: var(--shadow); }
+  .searchbox input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 9px 0; outline: none; }
+  .searchbox .btn { padding: 8px 14px; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; border: 1.5px solid var(--line); background: var(--card); border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: 14px; color: var(--soft); white-space: nowrap; }
+  .chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .chip b { font-weight: 700; opacity: .75; margin-left: 4px; }
+  select.chip { padding-right: 8px; max-width: 190px; }
+  .rows { background: var(--card); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; box-shadow: var(--shadow); }
+  .row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; }
   .row:last-child { border-bottom: 0; }
-  .row:active { background: var(--tint); }
-  .num { flex: none; min-width: 44px; height: 34px; border-radius: 999px; background: var(--tint); display: grid; place-items: center; font-weight: 700; font-size: 14px; padding: 0 8px; }
+  .row:hover { background: var(--tint); }
+  .num { flex: none; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-weight: 700; font-size: 14px; color: #fff; }
   .row .what { flex: 1; min-width: 0; }
-  .row .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .title { font: 600 16.5px var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row .sub { color: var(--soft); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row.gone .title { text-decoration: line-through; opacity: .6; }
-  .tag { flex: none; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 9px; background: var(--tint); color: var(--soft); }
+  .row > svg.i { color: var(--line); }
+  .tag { flex: none; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 3px 9px; background: var(--tint); color: var(--soft); display: inline-flex; align-items: center; gap: 3px; }
+  .tag svg.i { width: 13px; height: 13px; }
   .tag.edited { background: var(--gold); color: var(--navy-deep); }
   .tag.new { background: var(--ok); color: #fff; }
   .tag.deleted { background: var(--danger); color: #fff; }
-  .empty { padding: 34px 16px; text-align: center; color: var(--soft); }
+  .empty { padding: 44px 16px; text-align: center; color: var(--soft); }
+  .empty svg.i { width: 54px; height: 54px; margin: 0 auto 10px; color: var(--line); }
 
-  label.f { display: block; font-weight: 600; margin: 14px 0 5px; }
+  /* ---------- the form ---------- */
+  .split { display: grid; gap: 18px; }
+  .panes { display: flex; background: var(--tint); border-radius: 999px; padding: 4px; margin-bottom: 14px; }
+  .panes button { flex: 1; border: 0; background: transparent; border-radius: 999px; padding: 9px; font-weight: 700; color: var(--soft); display: flex; gap: 7px; justify-content: center; align-items: center; }
+  .panes button.on { background: var(--navy); color: #fff; }
+  .split[data-show="edit"] .previewPane, .split[data-show="preview"] .formPane { display: none; }
+  @media (min-width: 980px) {
+    .split { grid-template-columns: minmax(0, 1fr) 390px; align-items: start; }
+    .split[data-show] .previewPane, .split[data-show] .formPane { display: block; }
+    .previewPane { position: sticky; top: 92px; }
+    .panes { display: none; }
+  }
+  label.f { display: block; font-weight: 700; font-size: 14px; margin: 14px 0 5px; }
   label.f small { font-weight: 400; color: var(--soft); }
-  textarea.field { min-height: 120px; resize: vertical; line-height: 1.7; }
-  textarea.words { min-height: 340px; font-size: 17px; }
+  textarea.field { min-height: 110px; resize: vertical; line-height: 1.7; }
+  textarea.words { min-height: 340px; font: 17px/1.8 var(--serif); }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 560px) { .two { grid-template-columns: 1fr; } }
-  .error { color: var(--danger); font-size: 14px; margin-top: 4px; }
-  details { margin-top: 8px; color: var(--soft); font-size: 14px; }
-  details code { background: var(--tint); border-radius: 6px; padding: 1px 6px; color: var(--text); }
-  .actions { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); z-index: 4; }
-  .actions .in { max-width: 860px; margin: 0 auto; display: flex; gap: 8px; flex-wrap: wrap; }
-  .actions .btn.main { flex: 1; }
-
-  /* the words, part by part */
+  .error { color: var(--danger); font-size: 14px; margin-top: 6px; font-weight: 600; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--soft); }
   .wordshead { display: flex; align-items: center; gap: 10px; }
   .seg { display: inline-flex; background: var(--tint); border-radius: 999px; padding: 3px; }
-  .seg button { border: 0; background: transparent; border-radius: 999px; padding: 7px 14px; color: var(--soft); font-weight: 600; font-size: 14px; }
+  .seg button { border: 0; background: transparent; border-radius: 999px; padding: 7px 14px; color: var(--soft); font-weight: 700; font-size: 14px; }
   .seg button.on { background: var(--navy); color: #fff; }
-  .part { border: 1px solid var(--line); border-radius: 16px; padding: 10px; margin-top: 10px; background: var(--bg); }
-  .part.chorus { border: 2px solid var(--gold); background: var(--warn-bg); }
+  .part { border: 1.5px solid var(--line); border-radius: 18px; padding: 10px; margin-top: 10px; background: var(--bg); }
+  .part.chorus { border-color: var(--gold); background: var(--warn-bg); }
   .part.mark { border-style: dashed; padding-bottom: 4px; }
   .parthead { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-  .plabel { font-weight: 700; font-size: 14px; flex: none; min-width: 54px; }
+  .plabel { font: 700 15px var(--serif); flex: 1; }
   .part.chorus .plabel { color: var(--gold-deep); }
-  .parthead .plabel { flex: 1; }
-  .seg.kind { display: flex; margin-bottom: 8px; background: var(--card); border: 1px solid var(--line); }
-  .seg.kind button { flex: 1; padding: 8px 6px; font-size: 15px; }
+  .seg.kind { display: flex; margin-bottom: 8px; background: var(--card); border: 1.5px solid var(--line); }
+  .seg.kind button { flex: 1; padding: 8px 6px; font: 700 15px var(--serif); }
   .part.chorus .seg.kind button.on { background: var(--gold); color: var(--navy-deep); }
-  .mini { flex: none; border: 1px solid var(--line); background: var(--card); border-radius: 10px; min-width: 36px; height: 36px; padding: 0 8px; font-size: 15px; }
+  .mini { flex: none; border: 1.5px solid var(--line); background: var(--card); border-radius: 11px; min-width: 36px; height: 36px; padding: 0 8px; font-size: 14px; font-weight: 600; display: grid; place-items: center; }
+  .mini svg.i { width: 18px; height: 18px; }
   .mini[disabled] { opacity: .35; }
   .mini.danger { color: var(--danger); }
-  .part textarea.field { min-height: 92px; font-size: 17px; overflow: hidden; resize: none; }
+  .part textarea.field { min-height: 92px; font: 17px/1.8 var(--serif); overflow: hidden; resize: none; }
   .linetools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px; font-size: 13px; color: var(--soft); }
+  .actions { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); z-index: 9; box-shadow: 0 -6px 22px rgba(15,50,106,.08); }
+  .actions .in { max-width: 1180px; margin: 0 auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .actions .btn.main { flex: 1; min-width: 130px; }
+  .actions .saved { font-size: 13px; color: var(--soft); display: flex; gap: 5px; align-items: center; }
 
-  /* the preview */
-  .pverse { border-radius: 14px; padding: 10px 14px; margin-top: 10px; background: var(--bg); font-size: 17px; line-height: 1.8; font-family: Georgia, "Noto Serif Ethiopic", serif; }
-  .pverse.chorus { background: var(--warn-bg); border-left: 4px solid var(--gold); }
-  .pname { font: 700 12px system-ui, sans-serif; color: var(--gold-deep); margin-bottom: 2px; }
+  /* ---------- the preview: the mezmur as the app shows it ---------- */
+  .phone { border-radius: 34px; border: 8px solid var(--navy-deep); background: var(--bg); overflow: hidden; box-shadow: var(--shadow); max-width: 400px; margin: 0 auto; }
+  .phone .scroll { max-height: min(74vh, 720px); overflow: auto; }
+  .phead { padding: 44px 20px 18px; color: #fff; position: relative; overflow: hidden; }
+  .phead svg.i { position: absolute; right: -18px; top: -6px; width: 150px; height: 150px; opacity: .13; }
+  .phead .pchip { display: inline-block; background: var(--gold); color: var(--navy-deep); font-weight: 700; font-size: 13px; border-radius: 999px; padding: 4px 12px; }
+  .phead h3 { font: 700 27px/1.25 var(--serif); margin: 10px 0 2px; }
+  .phead .pwhom { color: var(--gold); font-weight: 600; font-size: 14px; }
+  .pbody { padding: 18px 18px 26px; font: 17px/1.85 var(--serif); }
+  .orn { text-align: center; color: var(--gold-deep); letter-spacing: 6px; margin: 0 0 14px; font-size: 13px; }
+  .pverse { display: flex; gap: 10px; margin-bottom: 18px; }
+  .pverse .no { flex: none; width: 26px; height: 26px; margin-top: 4px; border-radius: 50%; border: 1.5px solid var(--gold-deep); color: var(--gold-deep); font: 700 13px var(--serif); display: grid; place-items: center; }
+  .pverse .lines { flex: 1; min-width: 0; }
+  .pchorus { background: var(--warn-bg); border: 1px solid rgba(154,106,16,.25); border-radius: 20px; padding: 10px 16px 12px; margin-bottom: 18px; font-weight: 600; }
+  .pchorus .pname { font: 700 13px system-ui, sans-serif; color: var(--gold-deep); }
   .pline { display: flex; gap: 12px; justify-content: space-between; }
   .pline .answer { color: var(--gold-deep); text-align: right; flex: none; max-width: 45%; }
-  .times { font: 700 12px system-ui, sans-serif; background: var(--tint); border-radius: 999px; padding: 1px 7px; margin-left: 6px; }
-  .pmark { display: inline-block; margin-top: 10px; font-weight: 700; font-size: 13px; background: var(--gold); color: var(--navy-deep); border-radius: 999px; padding: 3px 12px; }
+  .times { font: 700 12px system-ui, sans-serif; color: var(--gold-deep); margin-left: 6px; }
+  .pmark { text-align: center; margin-bottom: 18px; }
+  .pmark span { display: inline-block; font: 700 13px system-ui, sans-serif; color: var(--gold-deep); border: 1px solid rgba(154,106,16,.45); border-radius: 999px; padding: 4px 14px; }
+  .ptrans { background: rgba(27,116,102,.12); border-radius: 20px; padding: 12px 16px; font: 15.5px/1.7 system-ui, sans-serif; }
+  .ptrans b { display: block; color: var(--ok); font-size: 13px; margin-bottom: 2px; }
+  .pempty { color: var(--soft); text-align: center; font: 14px system-ui, sans-serif; padding: 20px 0; }
 
-  .shade { position: fixed; inset: 0; background: rgba(4,10,24,.55); z-index: 20; display: grid; place-items: end center; }
+  /* ---------- history ---------- */
+  .ver { display: flex; gap: 14px; align-items: flex-start; }
+  .ver .badge { flex: none; width: 54px; height: 54px; border-radius: 17px; display: grid; place-items: center; color: #fff; font: 700 19px var(--serif); background: linear-gradient(135deg, var(--sky), var(--navy)); }
+  .ver.now .badge { background: linear-gradient(135deg, var(--gold), #E0A63A); color: var(--navy-deep); }
+  .ver .what { flex: 1; min-width: 0; }
+  .ver .what b { font: 700 16px var(--serif); display: block; }
+  .ver .what small { color: var(--soft); font-size: 13px; }
+
+  /* ---------- sheets and toasts ---------- */
+  .shade { position: fixed; inset: 0; background: rgba(4,10,24,.55); z-index: 20; display: grid; place-items: end center; animation: fade .18s; }
   @media (min-width: 620px) { .shade { place-items: center; } }
-  .sheet { background: var(--card); width: min(560px, 100%); max-height: 88vh; overflow: auto; border-radius: 22px 22px 0 0; padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); }
-  @media (min-width: 620px) { .sheet { border-radius: 22px; } }
-  .sheet h2 { margin: 0 0 8px; font-size: 19px; }
+  .sheet { background: var(--card); width: min(560px, 100%); max-height: 88vh; overflow: auto; border-radius: 26px 26px 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); animation: rise .22s; }
+  @media (min-width: 620px) { .sheet { border-radius: 26px; } }
+  .sheet h2 { margin: 0 0 8px; font: 700 20px var(--serif); }
   .sheet .list { margin: 8px 0; padding-left: 20px; }
-  .sheet .foot { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 16px; }
-  .menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 13px 6px; border-bottom: 1px solid var(--line); }
-  .menu button small { display: block; color: var(--soft); }
-  .toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--navy-deep); color: #fff; padding: 11px 18px; border-radius: 999px; z-index: 30; max-width: 92vw; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+  .sheet .foot { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 18px; }
+  .steps { margin: 12px 0 0; padding: 0; list-style: none; }
+  .steps li { display: flex; gap: 8px; align-items: center; padding: 4px 0; color: var(--soft); }
+  .steps li.done { color: var(--ok); }
+  .toast { position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--navy-deep); color: #fff; padding: 12px 18px; border-radius: 18px; z-index: 30; max-width: 92vw; text-align: center; box-shadow: 0 8px 26px rgba(0,0,0,.35); animation: rise .2s; }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+  .toast { animation-name: toastin; }
+  @keyframes toastin { from { opacity: 0; transform: translate(-50%, 14px); } }
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
-<header>
+<header id="top" class="blue">
   <div class="bar">
-    <button class="iconbtn" id="back" hidden aria-label="Back">←</button>
-    <h1 id="heading">ደብረ ብሥራት — Editor</h1>
-    <button class="publish" id="publish" disabled>Publish</button>
-    <button class="iconbtn" id="menu" aria-label="Menu">☰</button>
+    <button class="iconbtn" id="back" hidden aria-label="Back"></button>
+    <img id="logo" alt="">
+    <div class="who">
+      <div id="heading">ደብረ ብሥራት</div>
+      <div id="status"></div>
+    </div>
+    <nav id="deskNav"></nav>
+    <button class="publish" id="publish" disabled></button>
   </div>
-  <div class="status" id="status"></div>
 </header>
 <main id="app"></main>
+<nav id="tabs"></nav>
 
 <script>
 "use strict";
+const LOGO = "data:image/png;base64,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";
+
 /*
  * The editor of the online mezmur book (see ONLINE_GUIDE.md in the project).
  *
@@ -188,7 +306,7 @@ let base = recall("base", null);          // the book as it is online (the last 
 let draft = recall("draft", null) || emptyDraft();   // my changes that are not published yet
 let online = false;                       // true when "base" was read from GitHub in this visit
 let busy = "";                            // a short text while something is loading
-let listState = { kind: "mezmur", section: "", query: "", mine: false, scroll: 0 };
+let listState = { kind: "mezmur", section: "", query: "", filter: "all", scroll: 0 };
 
 function keepDraft() { remember("draft", draft); view = null; }
 
@@ -269,11 +387,11 @@ function fromBase64(encoded) {
 }
 
 function plainError(status) {
-  if (status === 401) return "The key is wrong or has expired. Open the menu → Connection and paste a new key.";
+  if (status === 401) return "The key is wrong or has expired. Open Connection and paste a new key.";
   if (status === 403) return "GitHub refused. The key may not have permission for this repository (it needs Contents: Read and write), or there were too many tries. Wait a few minutes.";
   if (status === 404) return conn.token
-    ? "Not found. Check the user name and the repository name in the menu → Connection. If they are right, the key is not allowed to open this repository."
-    : "The book is private: it can only be read with the key. Add the key in the menu → Connection.";
+    ? "Not found. Check the user name and the repository name in Connection. If they are right, the key is not allowed to open this repository."
+    : "The book is private: it can only be read with the key. Add the key in Connection.";
   return "GitHub answered with an error (" + status + "). Try again in a minute.";
 }
 
@@ -343,7 +461,7 @@ async function loadOnline(quiet) {
     if (!file) {
       busy = "";
       online = false;
-      if (!quiet || !base) toast(conn.token ? "The book (mezmurs.json) was not found. Check the names in menu → Connection, or open a backup file and publish it." : plainError(404));
+      if (!quiet || !base) toast(conn.token ? "The book (mezmurs.json) was not found. Check the names in Connection, or open a backup file and publish it." : plainError(404));
     } else {
       base = JSON.parse(file.text);
       remember("base", base);
@@ -377,7 +495,7 @@ async function publish(note, onStep) {
     const file = await readFile(BOOK_FILE);
     const newest = file ? JSON.parse(file.text) : null;
     const book = draft.whole ? JSON.parse(JSON.stringify(draft.whole)) : newest;
-    if (!book) throw new Error("There is no book online yet. Menu → Open a backup file first.");
+    if (!book) throw new Error("There is no book online yet. Open a backup file first (Home → Tools).");
     applyDraft(book, draft);
     book.rev = Math.max(newest ? (newest.rev || 0) : 0, book.rev || 0) + 1;
     book.updated = today();
@@ -399,7 +517,7 @@ async function publish(note, onStep) {
     for (let i = 0; i < 3; i++) {
       try { await matchVersionFile(book); last = null; break; } catch (problem) { last = problem; }
     }
-    if (last) throw new Error("The book was sent, but the small version file was not. Open the menu → Read again from online; it will be repaired.");
+    if (last) throw new Error("The book was sent, but the small version file was not. Press “Read again from online” on the home page; it will be repaired.");
     return book.rev;
   }
 }
@@ -447,6 +565,73 @@ function h(tag, props) {
 }
 const $ = function (id) { return document.getElementById(id); };
 
+/** The small pictures on buttons. All drawn here, so the page needs nothing from the internet. */
+const ICONS = {
+  home: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z",
+  book: "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z",
+  history: "M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z",
+  link: "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z",
+  search: "M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z",
+  plus: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z",
+  back: "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z",
+  up: "M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z",
+  down: "M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z",
+  right: "M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z",
+  trash: "M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z",
+  close: "M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
+  check: "M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
+  send: "M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z",
+  sound: "M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z",
+  eye: "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z",
+  edit: "M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z",
+  download: "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z",
+  open: "M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z",
+  refresh: "M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z",
+  cross: "M10.5 2h3v6h6v3h-6v11h-3V11h-6V8h6z",
+  undo: "M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z",
+  copy: "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z",
+  more: "M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z",
+  swap: "M6.99 11 3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z",
+  wand: "M7.5 5.6 10 7 8.6 4.5 10 2 7.5 3.4 5 2l1.4 2.5L5 7zm12 9.8L17 14l1.4 2.5L17 19l2.5-1.4L22 19l-1.4-2.5L22 14zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5zm-7.63 5.29a.996.996 0 0 0-1.41 0L1.29 18.96a.996.996 0 0 0 0 1.41l2.34 2.34c.39.39 1.02.39 1.41 0L16.7 11.05a.996.996 0 0 0 0-1.41l-2.33-2.35zm-1.03 5.49-2.12-2.12 2.44-2.44 2.12 2.12-2.44 2.44z",
+  list: "M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z",
+  warn: "M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z",
+};
+function icon(name, extra) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "i" + (extra ? " " + extra : ""));
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", ICONS[name]);
+  svg.appendChild(path);
+  return svg;
+}
+
+/** The two colors of a section: the same ones the app uses for it. */
+function sectionColors(name) {
+  const has = function (word) { return (name || "").indexOf(word) >= 0; };
+  if (has("ርገት")) return ["#6FB1E8", "#2E6FB5"];
+  if (has("ሰርግ") || has("ሠርግ")) return ["#CB5F86", "#6B1F3D"];
+  if (has("ማርያም")) return ["#4C9BE8", "#1B4FA3"];
+  if (has("መላእክት")) return ["#7D62D1", "#38247F"];
+  if (has("ቅዱሳን")) return ["#CF7F4C", "#6E3414"];
+  if (has("ሕማማት")) return ["#96304F", "#3E0E22"];
+  if (has("መስቀል")) return ["#DB5C3B", "#7A1F12"];
+  if (has("ልደት")) return ["#4455B5", "#151B55"];
+  if (has("ጥምቀት")) return ["#2FA8C4", "#0E5470"];
+  if (has("ሆሣዕና") || has("ሆሳዕና")) return ["#46A35A", "#165026"];
+  if (has("ትንሣኤ") || has("ትንሳኤ")) return ["#F0A63A", "#C4551A"];
+  if (has("ምጽዓት")) return ["#5B6889", "#1C2338"];
+  if (has("ዓውደ")) return ["#E3B62E", "#9A6B08"];
+  if (has("ወረብ")) return ["#1F4FA6", "#06142E"];
+  return ["#2F62C0", "#0B2452"];
+}
+function gradient(name) {
+  const colors = sectionColors(name);
+  return "background:linear-gradient(135deg," + colors[0] + "," + colors[1] + ")";
+}
+function shortSection(name) { return (name || "").replace(" መዝሙር", ""); }
+
 let toastTimer = 0;
 function toast(text) {
   document.querySelectorAll(".toast").forEach(function (old) { old.remove(); });
@@ -467,45 +652,102 @@ function sheet(build) {
   return close;
 }
 
+/** A question with two answers. */
+function ask(title, words, yes, danger, onYes) {
+  sheet(function (box, close) {
+    box.appendChild(h("h2", null, title));
+    box.appendChild(h("p", { class: "hint" }, words));
+    box.appendChild(h("div", { class: "foot" },
+      h("button", { class: "btn", onclick: close }, "Cancel"),
+      h("button", { class: "btn " + (danger ? "danger" : "main"), onclick: function () { close(); onYes(); } }, yes)));
+  });
+}
+
+// ---------- the frame of the page: top bar and tabs ----------
+const NAV = [
+  { route: "home", icon: "home", label: "Home" },
+  { route: "list", icon: "book", label: "Mezmurs" },
+  { route: "history", icon: "history", label: "History" },
+  { route: "setup", icon: "link", label: "Connection" },
+];
+
+function route() {
+  const hash = decodeURIComponent(location.hash.slice(1));
+  const cut = hash.indexOf("=");
+  return cut < 0 ? { name: hash || "home", arg: "" } : { name: hash.slice(0, cut), arg: hash.slice(cut + 1) };
+}
+function go(hash) { if (location.hash.slice(1) === hash) render(); else location.hash = hash; }
+
 function paintStatus() {
   const book = source();
   const changes = countChanges();
   let text = busy;
   if (!text) {
     if (!book) text = "No book loaded yet";
-    else {
-      text = (online ? "Online version " : "Saved copy, version ") + (book.rev || 1) + (book.updated ? " • " + book.updated : "");
-      if (changes.total) text += " • " + (changes.whole ? "whole book replaced" : changes.total + " change" + (changes.total > 1 ? "s" : "") + " not published");
-    }
+    else text = (online ? "Online • version " : "Saved copy • version ") + (book.rev || 1) + (book.updated ? " • " + book.updated : "");
   }
   $("status").textContent = text;
-  $("publish").disabled = !changes.total || !!busy;
+  const button = $("publish");
+  button.textContent = "";
+  button.appendChild(icon("send"));
+  button.appendChild(document.createTextNode("Publish"));
+  if (changes.total) button.appendChild(h("b", null, changes.whole ? "!" : changes.total));
+  button.disabled = !changes.total || !!busy;
 }
 
-function route() {
-  const hash = decodeURIComponent(location.hash.slice(1));
-  const cut = hash.indexOf("=");
-  return cut < 0 ? { name: hash, arg: "" } : { name: hash.slice(0, cut), arg: hash.slice(cut + 1) };
+function paintNav(current) {
+  for (const id of ["tabs", "deskNav"]) {
+    const box = $(id);
+    box.textContent = "";
+    for (const item of NAV) {
+      const on = current === item.route;
+      box.appendChild(id === "tabs"
+        ? h("button", { class: on ? "on" : "", onclick: function () { leaveForm(function () { go(item.route); }); } }, h("span", null, icon(item.icon)), item.label)
+        : h("button", { class: on ? "on" : "", onclick: function () { leaveForm(function () { go(item.route); }); } }, icon(item.icon), item.label));
+    }
+  }
 }
-function go(hash) { if (location.hash.slice(1) === hash) render(); else location.hash = hash; }
 
 let formDirty = false;
+let saveForm = null;      // set while a mezmur is open: saves it (used by Ctrl+S)
+/** Asks before leaving a mezmur with typing that was not saved. */
+function leaveForm(then) {
+  if (!formDirty) return then();
+  ask("Leave without saving?", "What you typed in this mezmur is not saved yet.", "Leave", true, function () {
+    formDirty = false;
+    remember("wip", null);
+    then();
+  });
+}
+
 function render() {
   const where = route();
   const app = $("app");
   app.textContent = "";
   document.querySelectorAll(".actions").forEach(function (old) { old.remove(); });
   formDirty = false;
-  const inner = where.name === "edit" || where.name === "new" || where.name === "setup";
-  $("back").hidden = !inner || (where.name === "setup" && !source());
-  $("heading").textContent = where.name === "setup" ? "Connection" : where.name === "new" ? "New" : where.name === "edit" ? "Edit" : "ደብረ ብሥራት — Editor";
+  saveForm = null;
+  const inForm = where.name === "edit" || where.name === "new" || where.name === "copy";
+  const back = $("back");
+  back.hidden = !inForm && where.name !== "changes";
+  back.textContent = "";
+  back.appendChild(icon("back"));
+  $("logo").hidden = !back.hidden;
+  $("tabs").style.display = inForm ? "none" : "";
+  $("heading").textContent = "ደብረ ብሥራት";
   paintStatus();
+  paintNav(where.name === "changes" ? "home" : inForm ? "list" : where.name);
+  window.scrollTo(0, 0);
 
   if (where.name === "setup" || (!source() && !conn.owner)) return drawSetup(app);
   if (!source()) return drawNoBook(app);
-  if (where.name === "edit") return drawForm(app, where.arg, null);
-  if (where.name === "new") return drawForm(app, null, where.arg === "wereb" ? "wereb" : "mezmur");
-  drawList(app);
+  if (where.name === "edit") return drawForm(app, where.arg, null, null);
+  if (where.name === "new") return drawForm(app, null, where.arg === "wereb" ? "wereb" : "mezmur", null);
+  if (where.name === "copy") return drawForm(app, null, null, where.arg);
+  if (where.name === "list") return drawList(app);
+  if (where.name === "history") return drawHistory(app);
+  if (where.name === "changes") return drawChanges(app);
+  drawHome(app);
 }
 
 // ---------- the connection page ----------
@@ -514,119 +756,210 @@ function drawSetup(app) {
   const repo = h("input", { class: "field", value: conn.repo, autocomplete: "off", autocapitalize: "none", spellcheck: "false", placeholder: "for example  mezmur" });
   const token = h("input", { class: "field", type: "password", value: conn.token, autocomplete: "off", placeholder: "starts with  github_pat_" });
   const show = h("input", { type: "checkbox", onchange: function () { token.type = show.checked ? "text" : "password"; } });
-  app.appendChild(h("div", { class: "card" },
-    h("h2", null, "Connect to the online book"),
-    h("p", { class: "hint" }, "The book is kept in a GitHub repository. Fill this in once on each phone or computer you use. The step-by-step guide is in ONLINE_GUIDE.md."),
+  const state = !conn.owner ? "Not connected yet" : conn.token ? "Connected to " + conn.owner + "/" + conn.repo : "No key saved on this device";
+  app.appendChild(h("div", { class: "hero blue" },
+    h("div", { class: "over" }, "CONNECTION"),
+    h("h1", null, "Where the book is"),
+    h("span", { class: "pill" }, icon(conn.token ? "check" : "warn"), state)));
+  app.appendChild(h("div", { class: "card", style: "margin-top:14px" },
+    h("p", { class: "hint", style: "margin-top:0" }, "The book is kept in a private GitHub repository. Fill this in once on each phone or computer you use. The step-by-step guide is ONLINE_GUIDE.md."),
     h("label", { class: "f" }, "GitHub user name"), owner,
     h("label", { class: "f" }, "Repository name"), repo,
-    h("label", { class: "f" }, "Key ", h("small", null, "(your own key, with Contents: Read and write)")), token,
+    h("label", { class: "f" }, "Key ", h("small", null, "your own key, with Contents: Read and write")), token,
     h("label", { class: "check", style: "margin-top:8px" }, show, "Show the key"),
-    h("p", { class: "hint" }, "The key is saved only in this browser, on this device. Never send it to anyone and never put it in a message."),
-    h("div", { class: "foot", style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:16px" },
+    h("p", { class: "hint" }, "The key is saved only in this browser, on this device. Never send it to anyone."),
+    h("div", { class: "rowwrap", style: "margin-top:16px" },
       h("button", { class: "btn main", onclick: function () {
         conn = { owner: owner.value.trim(), repo: repo.value.trim(), token: token.value.trim() };
         if (!conn.owner || !conn.repo) return toast("Write the user name and the repository name.");
         remember("conn", conn);
-        go("");
+        go("home");
         loadOnline(false);
-      } }, "Save and read the book"),
+      } }, icon("check"), "Save and read the book"),
       conn.token ? h("button", { class: "btn danger", onclick: function () {
         conn.token = ""; remember("conn", conn); toast("The key was removed from this device."); render();
-      } }, "Forget the key on this device") : null)));
+      } }, icon("trash"), "Forget the key") : null)));
   app.appendChild(h("div", { class: "card" },
-    h("h2", null, "No internet now?"),
+    h("h3", null, "Without internet"),
     h("p", { class: "hint" }, "You can open a backup file of the book and edit it. Publish later, when you are online."),
-    h("button", { class: "btn", style: "margin-top:10px", onclick: pickFile }, "Open a backup file")));
+    h("button", { class: "btn", style: "margin-top:10px", onclick: pickFile }, icon("open"), "Open a backup file")));
 }
 
 function drawNoBook(app) {
   app.appendChild(h("div", { class: "card" },
-    h("h2", null, busy ? "Reading…" : "No book yet"),
+    h("h3", null, busy ? "Reading the book…" : "No book yet"),
     h("p", { class: "hint" }, busy ? "Please wait." : "The book could not be read from " + conn.owner + "/" + conn.repo + ". Check the connection, or open a backup file."),
-    h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:12px" },
-      h("button", { class: "btn main", onclick: function () { loadOnline(false); } }, "Try again"),
-      h("button", { class: "btn", onclick: function () { go("setup"); } }, "Connection"),
-      h("button", { class: "btn", onclick: pickFile }, "Open a backup file"))));
+    h("div", { class: "rowwrap", style: "margin-top:12px" },
+      h("button", { class: "btn main", onclick: function () { loadOnline(false); } }, icon("refresh"), "Try again"),
+      h("button", { class: "btn", onclick: function () { go("setup"); } }, icon("link"), "Connection"),
+      h("button", { class: "btn", onclick: pickFile }, icon("open"), "Open a backup file"))));
+}
+
+// ---------- home ----------
+function drawHome(app) {
+  const book = source();
+  const all = rows().filter(function (row) { return row.state !== "deleted"; });
+  const mezmurs = all.filter(function (row) { return row.song.k !== "wereb"; });
+  const werebs = all.filter(function (row) { return row.song.k === "wereb"; });
+  const withSound = all.filter(function (row) { return row.song.a; }).length;
+  const noName = mezmurs.filter(function (row) { return !row.song.w; }).length;
+  const changes = countChanges();
+
+  if (!storageWorks) app.appendChild(h("div", { class: "warn" }, icon("warn"), "This browser does not keep data for this page. Publish before you close it, or your changes are lost."));
+  if (!conn.token && conn.owner) app.appendChild(h("div", { class: "warn" }, icon("warn"), "No key on this device. You can edit this saved copy, but to publish, add the key in Connection."));
+
+  app.appendChild(h("div", { class: "hero blue" },
+    h("div", { class: "over" }, "የመዝሙር መጽሐፍ አርታዒ  •  MEZMUR EDITOR"),
+    h("h1", null, "ደብረ ብሥራት"),
+    h("span", { class: "pill" }, icon(online ? "check" : "warn"), (online ? "Online version " : "Saved copy, version ") + (book.rev || 1)),
+    book.updated ? h("span", { style: "margin-left:10px;font-size:14px;opacity:.9" }, book.updated) : null,
+    book.note ? h("div", { class: "note" }, "“" + book.note + "”") : null,
+    h("div", { class: "stats" },
+      h("div", { class: "stat" }, h("b", null, mezmurs.length), h("span", null, "መዝሙር")),
+      h("div", { class: "stat" }, h("b", null, werebs.length), h("span", null, "ወረብ")),
+      h("div", { class: "stat" }, h("b", null, (book.categories || []).length), h("span", null, "ክፍሎች")),
+      h("div", { class: "stat" }, h("b", null, withSound), h("span", null, "ድምፅ")))));
+
+  if (changes.total) {
+    const parts = [];
+    if (changes.whole) parts.push("whole book replaced");
+    if (changes.added) parts.push(changes.added + " new");
+    if (changes.edited) parts.push(changes.edited + " changed");
+    if (changes.deleted) parts.push(changes.deleted + " deleted");
+    app.appendChild(h("div", { class: "unsent" },
+      h("div", { class: "what" }, h("b", null, "Not published yet"), h("small", null, parts.join(" • ") + " — only on this device")),
+      h("button", { class: "btn small", onclick: function () { go("changes"); } }, icon("eye"), "Review")));
+  }
+
+  const unfinished = recall("wip", null);
+  if (unfinished && unfinished.title) {
+    app.appendChild(h("div", { class: "warn", style: "margin-top:14px" }, icon("edit"),
+      h("span", { style: "flex:1" }, "Unfinished typing: “" + unfinished.title + "”"),
+      h("button", { class: "btn small", onclick: function () { go(unfinished.route); } }, "Continue")));
+  }
+
+  app.appendChild(h("div", { class: "quick" },
+    h("button", { style: gradient(""), onclick: function () { go("new=mezmur"); } }, icon("plus"), h("span", null, "New mezmur", h("small", null, "አዲስ መዝሙር"))),
+    h("button", { style: gradient("ወረብ"), onclick: function () { go("new=wereb"); } }, icon("plus"), h("span", null, "New wereb", h("small", null, "አዲስ ወረብ")))));
+
+  app.appendChild(h("h2", { class: "sec" }, "የመዝሙር ክፍሎች", h("small", null, "tap a section to open it")));
+  const tiles = h("div", { class: "tiles" });
+  for (const name of (book.categories || [])) {
+    const count = mezmurs.filter(function (row) { return row.song.c === name; }).length;
+    tiles.appendChild(h("button", { class: "tile", style: gradient(name), onclick: function () {
+      listState = { kind: "mezmur", section: name, query: "", filter: "all", scroll: 0 };
+      go("list");
+    } }, h("b", null, shortSection(name)), h("span", null, count + " መዝሙራት"), icon("cross")));
+  }
+  tiles.appendChild(h("button", { class: "tile", style: gradient("ወረብ"), onclick: function () {
+    listState = { kind: "wereb", section: "", query: "", filter: "all", scroll: 0 };
+    go("list");
+  } }, h("b", null, "ወረብ"), h("span", null, werebs.length + " ወረብ"), icon("cross")));
+  app.appendChild(tiles);
+
+  app.appendChild(h("h2", { class: "sec" }, "Tools"));
+  const open = function (filter) { return function () { listState = { kind: "mezmur", section: "", query: "", filter: filter, scroll: 0 }; go("list"); }; };
+  app.appendChild(h("div", { class: "card checks", style: "padding:6px 14px" },
+    h("button", { onclick: openReplace }, h("span", { class: "dot", style: "background:#7D62D1" }, icon("swap")), h("span", null, "Find and replace", h("div", { class: "hint", style: "margin:0" }, "Fix one spelling in the whole book"))),
+    h("button", { onclick: open("noname") }, h("span", { class: "dot", style: "background:#CF7F4C" }, icon("warn")), h("span", null, "No “for whom” name", h("div", { class: "hint", style: "margin:0" }, "These mezmurs have no picture of their own")), h("b", null, noName)),
+    h("button", { onclick: open("sound") }, h("span", { class: "dot", style: "background:#2FAE9A" }, icon("sound")), h("span", null, "With a recording"), h("b", null, withSound)),
+    h("button", { onclick: function () { loadOnline(false); } }, h("span", { class: "dot", style: "background:#3F74D6" }, icon("refresh")), h("span", null, "Read again from online", h("div", { class: "hint", style: "margin:0" }, "Your unpublished changes are kept"))),
+    h("button", { onclick: saveBackup }, h("span", { class: "dot", style: "background:#1B7466" }, icon("download")), h("span", null, "Download a backup copy")),
+    h("button", { onclick: pickFile }, h("span", { class: "dot", style: "background:#9A6A10" }, icon("open")), h("span", null, "Open a backup file", h("div", { class: "hint", style: "margin:0" }, "Replaces the whole book when you publish")))));
+}
+
+function saveBackup() {
+  const book = source();
+  if (!book) return toast("There is no book to save.");
+  const copy = applyDraft(Object.assign({}, book, { songs: book.songs.slice() }), draft);
+  download("mezmurs-backup-v" + (copy.rev || 1) + "-" + today() + ".json", JSON.stringify(copy));
 }
 
 // ---------- the list ----------
+if (!listState.filter) listState.filter = "all";
 function drawList(app) {
   const book = source();
   const all = rows();
-  const mezmurCount = all.filter(function (row) { return row.song.k !== "wereb" && row.state !== "deleted"; }).length;
-  const werebCount = all.filter(function (row) { return row.song.k === "wereb" && row.state !== "deleted"; }).length;
-
-  if (!storageWorks) app.appendChild(h("div", { class: "warn" }, "This browser does not keep data for this page. Your changes will be lost if you close the page before you publish."));
-  if (!conn.token && conn.owner) app.appendChild(h("div", { class: "warn" }, "No key on this device. You can edit this saved copy, but to read the newest book and to publish you must add the key: menu → Connection."));
+  const ofKind = function (kind) { return all.filter(function (row) { return (row.song.k === "wereb") === (kind === "wereb") && row.state !== "deleted"; }).length; };
 
   const listBox = h("div", { class: "rows" });
+  const count = h("p", { class: "hint", style: "margin:0 4px 8px" });
   const paint = function () {
     listBox.textContent = "";
     const query = listState.query.trim().toLowerCase();
     const shown = all.filter(function (row) {
       const song = row.song;
       if ((song.k === "wereb") !== (listState.kind === "wereb")) return false;
-      if (listState.mine && !row.state) return false;
+      if (listState.filter === "mine" && !row.state) return false;
+      if (listState.filter === "sound" && !song.a) return false;
+      if (listState.filter === "noname" && song.w) return false;
       if (listState.kind !== "wereb" && listState.section && song.c !== listState.section) return false;
       if (!query) return true;
       return String(song.n) === query || song.t.toLowerCase().indexOf(query) >= 0 || song.l.toLowerCase().indexOf(query) >= 0;
     });
-    if (!shown.length) listBox.appendChild(h("div", { class: "empty" }, "Nothing here."));
+    count.textContent = shown.length + (listState.kind === "wereb" ? " wereb" : " mezmurs");
+    if (!shown.length) listBox.appendChild(h("div", { class: "empty" }, icon("search"), "Nothing here."));
     for (const row of shown) {
       const song = row.song;
-      const under = song.k === "wereb" ? (song.o || "ወረብ") : song.c.replace(" መዝሙር", "") + (song.w ? " • " + song.w : "");
+      const under = song.k === "wereb" ? (song.o || "ወረብ") : shortSection(song.c) + (song.w ? " • " + song.w : "");
       listBox.appendChild(h("button", { class: "row" + (row.state === "deleted" ? " gone" : ""), onclick: function () {
         listState.scroll = window.scrollY;
-        if (row.state === "deleted") askRestore(song); else go("edit=" + song.id);
+        if (row.state === "deleted") {
+          ask("Bring it back?", "“" + song.t + "” is marked to be deleted when you publish.", "Bring it back", false, function () {
+            draft.deleted = draft.deleted.filter(function (id) { return id !== song.id; });
+            delete draft.before[song.id];
+            keepDraft(); render();
+          });
+        } else go("edit=" + song.id);
       } },
-        h("span", { class: "num" }, song.n),
+        h("span", { class: "num", style: gradient(song.k === "wereb" ? "ወረብ" : song.c) }, song.n),
         h("span", { class: "what" }, h("div", { class: "title" }, song.t), h("div", { class: "sub" }, under)),
-        song.a && !row.state ? h("span", { class: "tag" }, "sound") : null,
-        row.state ? h("span", { class: "tag " + row.state }, row.state) : null));
+        song.a ? h("span", { class: "tag" }, icon("sound")) : null,
+        row.state ? h("span", { class: "tag " + row.state }, row.state) : null,
+        icon("right")));
     }
   };
 
-  const sections = h("select", { class: "field grow", onchange: function () { listState.section = sections.value; paint(); } },
+  const search = h("input", { type: "search", placeholder: "Search title, words or number", value: listState.query,
+    oninput: function () { listState.query = search.value; paint(); } });
+  const chip = function (label, on, onclick, extra) { return h("button", { class: "chip" + (on ? " on" : ""), onclick: onclick }, label, extra != null ? h("b", null, extra) : null); };
+  const kind = function (name, label) {
+    return chip(label, listState.kind === name, function () { listState.kind = name; listState.scroll = 0; render(); }, ofKind(name));
+  };
+  const filter = function (name, label) {
+    return chip(label, listState.filter === name, function () { listState.filter = name; paint(); document.querySelectorAll(".chip[data-f]").forEach(function (el) { el.classList.toggle("on", el.dataset.f === name); }); });
+  };
+  const sections = h("select", { class: "chip", onchange: function () { listState.section = sections.value; paint(); } },
     h("option", { value: "" }, "All sections"),
-    (book.categories || []).map(function (name) { return h("option", { value: name }, name); }));
+    (book.categories || []).map(function (name) { return h("option", { value: name }, shortSection(name)); }));
   sections.value = listState.section;
   sections.hidden = listState.kind === "wereb";
-
-  const tab = function (kind, label) {
-    return h("button", { class: listState.kind === kind ? "on" : "", onclick: function () { listState.kind = kind; listState.scroll = 0; render(); } }, label);
-  };
-  const search = h("input", { class: "field grow", type: "search", placeholder: "Search title, words or number", value: listState.query,
-    oninput: function () { listState.query = search.value; paint(); } });
-  const mine = h("input", { type: "checkbox", onchange: function () { listState.mine = mine.checked; paint(); } });
-  mine.checked = listState.mine;
+  const filters = [["all", "All"], ["mine", "My changes"], ["sound", "With sound"], ["noname", "No name"]].map(function (item) {
+    const el = filter(item[0], item[1]);
+    el.dataset.f = item[0];
+    return el;
+  });
 
   app.appendChild(h("div", { class: "tools" },
-    h("div", { class: "tabs" }, tab("mezmur", "መዝሙር " + mezmurCount), tab("wereb", "ወረብ " + werebCount)),
-    h("button", { class: "btn main", onclick: function () { listState.scroll = window.scrollY; go("new=" + listState.kind); } }, "+ New")));
-  app.appendChild(h("div", { class: "tools" }, search, sections));
-  app.appendChild(h("div", { class: "tools" }, h("label", { class: "check" }, mine, "Show only my changes")));
+    h("div", { class: "searchbox" }, icon("search"), search,
+      h("button", { class: "btn main small", onclick: function () { listState.scroll = window.scrollY; go("new=" + listState.kind); } }, icon("plus"), "New")),
+    h("div", { class: "chips" }, kind("mezmur", "መዝሙር"), kind("wereb", "ወረብ"), sections, filters)));
+  app.appendChild(count);
   app.appendChild(listBox);
   paint();
   window.scrollTo(0, listState.scroll);
 }
 
-function askRestore(song) {
-  sheet(function (box, close) {
-    box.appendChild(h("h2", null, "Bring it back?"));
-    box.appendChild(h("p", { class: "hint" }, "“" + song.t + "” is marked to be deleted when you publish."));
-    box.appendChild(h("div", { class: "foot" },
-      h("button", { class: "btn", onclick: close }, "Leave it deleted"),
-      h("button", { class: "btn main", onclick: function () {
-        draft.deleted = draft.deleted.filter(function (id) { return id !== song.id; });
-        delete draft.before[song.id];
-        keepDraft(); close(); render();
-      } }, "Bring it back")));
-  });
-}
-
-// ---------- the form ----------
+// ---------- the words of a mezmur ----------
 function cleanText(text) {
   return text.replace(/\r\n?/g, "\n").split("\n").map(function (line) { return line.replace(/\s+$/, ""); }).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** Cleans pasted words: extra spaces, odd punctuation, and a verse number in front of a verse. */
+function tidyText(text) {
+  return text.replace(/\r\n?/g, "\n").replace(/[​-‍﻿]/g, "").split("\n").map(function (line) {
+    return line.replace(/[ \t ]+/g, " ").replace(/፡፡|::/g, "።").replace(/\s+([።፣፤])/g, "$1").trim();
+  }).join("\n").replace(/\n{3,}/g, "\n\n").replace(/(^|\n\n)\s*(\d{1,2}|[፩-፲])\s*[.)፦\/-]\s*/g, "$1").trim();
 }
 
 /** The picture of a mezmur comes from whom it is for. Among the pictures of that name, the least used one. */
@@ -702,45 +1035,111 @@ function previewLine(line) {
   return h("div", { class: "pline" }, h("span", null, pieces), answer ? h("span", { class: "answer" }, answer) : null);
 }
 
-function openPreview(title, parts, translation) {
-  sheet(function (box, close) {
-    box.appendChild(h("h2", null, title || "Preview"));
-    box.appendChild(h("p", { class: "hint" }, "This is how the parts will be shown in the app."));
-    let number = 0;
-    for (const part of parts) {
-      if (part.type === "mark") { box.appendChild(h("div", { class: "pmark" }, "አዝ…")); continue; }
-      const text = cleanText(part.text);
-      if (!text) continue;
-      const chorus = part.type === "chorus";
-      box.appendChild(h("div", { class: "pverse" + (chorus ? " chorus" : "") },
-        h("div", { class: "pname" }, chorus ? "አዝማች" : String(++number)),
-        text.split("\n").filter(function (line) { return line.trim(); }).map(previewLine)));
+/** Draws a mezmur the way the app's reading screen shows it. */
+function drawPreview(target, data) {
+  target.textContent = "";
+  const section = data.wereb ? "ወረብ" : data.section;
+  const body = h("div", { class: "pbody" }, h("div", { class: "orn" }, "◆ ◆ ◆"));
+  let number = 0, any = false;
+  const verseCount = data.parts.filter(function (part) { return part.type === "verse" && cleanText(part.text); }).length;
+  for (const part of data.parts) {
+    if (part.type === "mark") { body.appendChild(h("div", { class: "pmark" }, h("span", null, "↻ አዝማች"))); continue; }
+    const text = cleanText(part.text);
+    if (!text) continue;
+    any = true;
+    const lines = text.split("\n").filter(function (line) { return line.trim(); }).map(previewLine);
+    if (part.type === "chorus") body.appendChild(h("div", { class: "pchorus" }, h("div", { class: "pname" }, "✢ አዝማች"), lines));
+    else {
+      number++;
+      body.appendChild(h("div", { class: "pverse" }, verseCount > 1 ? h("span", { class: "no" }, number) : null, h("div", { class: "lines" }, lines)));
     }
-    if (translation) box.appendChild(h("div", { class: "pverse" }, h("div", { class: "pname" }, "ትርጉም"), h("div", null, translation)));
-    box.appendChild(h("div", { class: "foot" }, h("button", { class: "btn main", onclick: close }, "Close")));
-  });
+  }
+  if (!any) body.appendChild(h("div", { class: "pempty" }, "The words will show here as you type."));
+  if (data.translation) body.appendChild(h("div", { class: "ptrans" }, h("b", null, "ትርጉም"), data.translation));
+  target.appendChild(h("div", { class: "scroll" },
+    h("div", { class: "phead", style: gradient(section) }, icon("cross"),
+      h("span", { class: "pchip" }, (data.wereb ? "ወረብ" : shortSection(section)) + "  •  " + (data.number || "?")),
+      h("h3", null, data.title || "ርዕስ"),
+      data.whom ? h("div", { class: "pwhom" }, data.whom) : null),
+    body));
 }
 
-function drawForm(app, id, newKind) {
+/** Puts a changed mezmur into my unpublished changes (or takes it out, when it is again as online). */
+function stage(next) {
   const book = source();
+  const original = book.songs.find(function (song) { return song.id === next.id; }) || null;
+  if (original && JSON.stringify(original) === JSON.stringify(next)) {
+    delete draft.changed[next.id];
+    delete draft.before[next.id];
+  } else {
+    draft.changed[next.id] = next;
+    if (original && !draft.before[next.id]) draft.before[next.id] = original;
+  }
+}
+
+function newId() { return "web" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); }
+
+// ---------- the form ----------
+function drawForm(app, id, newKind, copyOf) {
+  const book = source();
+  const here = "#" + location.hash.slice(1);
   const original = id ? book.songs.find(function (song) { return song.id === id; }) : null;   // as it is online
   const mineNow = id ? (draft.changed[id] || original) : null;
-  if (id && !mineNow) { go(""); return; }
+  if (id && !mineNow) { go("list"); return; }
+  const template = copyOf ? (draft.changed[copyOf] || book.songs.find(function (song) { return song.id === copyOf; })) : null;
+  if (copyOf && !template) { go("list"); return; }
   const isNew = !id;
-  const song = mineNow ? Object.assign({}, mineNow) : {
+  let song = mineNow ? Object.assign({}, mineNow) : template ? Object.assign({}, template, { id: "", t: template.t + " (ቅጂ)", a: "" }) : {
     id: "", n: 0, t: "", c: newKind === "wereb" ? "ወረብ" : (listState.section || (book.categories || [])[0] || ""),
     s: "", l: "", tr: "", k: newKind, o: "", a: "", w: "", w2: "", ch: 0, img: "",
   };
   const wereb = song.k === "wereb";
-  if (isNew) {
-    const same = rows().filter(function (row) { return (row.song.k === "wereb") === wereb; });
-    song.n = same.reduce(function (most, row) { return Math.max(most, row.song.n); }, 0) + 1;
-  }
+  const sameKind = rows().filter(function (row) { return (row.song.k === "wereb") === wereb && row.state !== "deleted"; });
+  if (isNew) song.n = sameKind.reduce(function (most, row) { return Math.max(most, row.song.n); }, 0) + 1;
+
+  // Typing that was not saved (the page was closed, or the phone went to sleep) comes back.
+  const kept = recall("wip", null);
+  const restored = !!(kept && kept.route === here.slice(1) && kept.song);
+  if (restored) song = Object.assign({}, song, kept.song);
+
+  // The mezmur before and after this one in its section, for "Save & next".
+  const neighbors = isNew ? [] : sameKind.filter(function (row) { return wereb || row.song.c === (mineNow || song).c; });
+  const place = neighbors.findIndex(function (row) { return row.song.id === id; });
+  const nextSong = place >= 0 && neighbors[place + 1] ? neighbors[place + 1].song : null;
+  const previousSong = place > 0 ? neighbors[place - 1].song : null;
+
   $("heading").textContent = isNew ? (wereb ? "New wereb" : "New mezmur") : song.t;
 
-  const dirty = function () { formDirty = true; };
-  const field = function (props) { return h("input", Object.assign({ class: "field", oninput: dirty }, props)); };
   const names = (book.names || []).map(function (item) { return item.n; });
+  const errors = h("div", { class: "error" });
+  const savedNote = h("span", { class: "saved" });
+  const previewBox = h("div", { class: "phone" });
+  let parts = toParts(song.l, song.ch || 0);
+  if (!parts.length) parts = [{ type: "verse", text: "" }];
+  let mode = "parts";
+  let chorusKept = song.ch || 0;      // which verse is the chorus, while the words are shown as plain text
+  const history = [];                  // earlier states of the parts, for "Undo"
+
+  let refreshTimer = 0, keepTimer = 0;
+  const refresh = function () {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(function () {
+      drawPreview(previewBox, { title: title.value.trim(), number: number.value, section: section.value, wereb: wereb,
+        parts: currentParts(), translation: cleanText(translation.value), whom: whom.value });
+    }, 120);
+  };
+  const dirty = function () {
+    formDirty = true;
+    refresh();
+    clearTimeout(keepTimer);
+    keepTimer = setTimeout(function () {
+      remember("wip", { route: here.slice(1), title: title.value.trim() || "(no title)", song: collect() });
+      savedNote.textContent = "";
+      savedNote.appendChild(icon("check"));
+      savedNote.appendChild(document.createTextNode("typing kept"));
+    }, 700);
+  };
+  const field = function (props) { return h("input", Object.assign({ class: "field", oninput: dirty }, props)); };
   const nameSelect = function (value) {
     const select = h("select", { class: "field", onchange: dirty },
       h("option", { value: "" }, "— none —"),
@@ -750,7 +1149,8 @@ function drawForm(app, id, newKind) {
     return select;
   };
 
-  const title = field({ value: song.t });
+  const title = field({ value: song.t, placeholder: "ርዕስ" });
+  title.style.font = "700 19px var(--serif)";
   const number = field({ value: song.n, type: "number", min: "1", inputmode: "numeric" });
   const section = h("select", { class: "field", onchange: dirty }, (book.categories || []).map(function (name) { return h("option", { value: name }, name); }));
   section.value = song.c;
@@ -761,18 +1161,17 @@ function drawForm(app, id, newKind) {
   const also = nameSelect(song.w2);
   const occasion = field({ value: song.o || "" });
   const singer = field({ value: song.s || "" });
-  const errors = h("div", { class: "error" });
 
   // ----- the words, part by part -----
-  let parts = toParts(song.l, song.ch || 0);
-  if (!parts.length) parts = [{ type: "verse", text: "" }];
-  let mode = "parts";
-  let chorusKept = song.ch || 0;      // which verse is the chorus, while the words are shown as plain text
   const partsBox = h("div");
   const plain = h("textarea", { class: "field words", spellcheck: "false", oninput: dirty });
   const wordsBox = h("div");
-
   const grow = function (area) { area.style.height = "auto"; area.style.height = (area.scrollHeight + 4) + "px"; };
+  const remberParts = function () {
+    history.push(JSON.stringify(parts));
+    if (history.length > 40) history.shift();
+  };
+  const changed = function () { dirty(); paintParts(); };
 
   /** Changes the line the cursor is on (for the ×2 and the answer buttons). */
   const onLine = function (area, change) {
@@ -799,35 +1198,37 @@ function drawForm(app, id, newKind) {
       const choice = function (type, text, explain) {
         return h("button", { class: part.type === type ? "on" : "", title: explain, onclick: function () {
           if (part.type === type) return;
+          remberParts();
           if (type === "chorus") parts.forEach(function (other) { if (other.type === "chorus") other.type = "verse"; });   // only one chorus
           part.type = type;
-          dirty(); paintParts();
+          changed();
         } }, text);
       };
       const kind = h("div", { class: "seg kind" },
         choice("verse", "ግጥም", "A verse"),
         choice("chorus", "አዝማች", "The chorus"),
         choice("mark", "አዝ", "Sing the chorus again here"));
-
       const move = function (by) {
         const to = at + by;
         if (to < 0 || to >= parts.length) return;
+        remberParts();
         parts.splice(to, 0, parts.splice(at, 1)[0]);
-        dirty(); paintParts();
+        changed();
       };
       const head = h("div", { class: "parthead" },
         h("span", { class: "plabel" }, label),
-        h("button", { class: "mini", title: "Move up", "aria-label": "Move up", disabled: at === 0, onclick: function () { move(-1); } }, "↑"),
-        h("button", { class: "mini", title: "Move down", "aria-label": "Move down", disabled: at === parts.length - 1, onclick: function () { move(1); } }, "↓"),
+        h("button", { class: "mini", title: "Move up", "aria-label": "Move up", disabled: at === 0, onclick: function () { move(-1); } }, icon("up")),
+        h("button", { class: "mini", title: "Move down", "aria-label": "Move down", disabled: at === parts.length - 1, onclick: function () { move(1); } }, icon("down")),
         h("button", { class: "mini", title: "Add a verse below", "aria-label": "Add a verse below", onclick: function () {
-          parts.splice(at + 1, 0, { type: "verse", text: "" }); dirty(); paintParts();
-        } }, "+"),
+          remberParts(); parts.splice(at + 1, 0, { type: "verse", text: "" }); changed();
+        } }, icon("plus")),
         h("button", { class: "mini danger", title: "Remove this part", "aria-label": "Remove this part", onclick: function () {
-          if (part.type !== "mark" && part.text.trim() && !confirm("Remove this part and its words?")) return;
+          remberParts();
           parts.splice(at, 1);
           if (!parts.length) parts.push({ type: "verse", text: "" });
-          dirty(); paintParts();
-        } }, "✕"));
+          changed();
+          toast("Part removed. Press Undo to bring it back.");
+        } }, icon("trash")));
 
       let body;
       if (part.type === "mark") {
@@ -839,11 +1240,12 @@ function drawForm(app, id, newKind) {
         // Pasted a whole mezmur into one box: when leaving the box, cut it into parts at the empty lines.
         area.addEventListener("change", function () {
           if (!/\n\s*\n/.test(area.value.trim())) return;
+          remberParts();
           const pieces = toParts(area.value, 0);
           if (part.type === "chorus" && pieces.length) pieces[0].type = "chorus";
           else pieces.forEach(function (piece) { if (piece.type === "chorus") piece.type = "verse"; });
           parts.splice.apply(parts, [at, 1].concat(pieces));
-          paintParts();
+          changed();
         });
         const times = function (count) {
           return h("button", { class: "mini", onpointerdown: keepFocus, onclick: function () {
@@ -851,13 +1253,28 @@ function drawForm(app, id, newKind) {
               const bare = line.replace(/\s*\(\s*(\d+|[፩-፱])\s*(?:ጊዜ)?\s*\)\s*$/, "");
               return count > 1 ? bare + " (" + count + ")" : bare;
             });
-          } }, count > 1 ? "×" + count : "×1");
+          } }, "×" + count);
         };
         body = h("div", null, area,
-          h("div", { class: "linetools" }, "This line is sung:", times(1), times(2), times(3), times(4),
+          h("div", { class: "linetools" }, "This line:", times(1), times(2), times(3), times(4),
             h("button", { class: "mini", onpointerdown: keepFocus, title: "Answering words, shown on the right", onclick: function () {
               onLine(area, function (line) { return line.indexOf(" || ") >= 0 ? line : line.replace(/\s+$/, "") + " || "; });
-            } }, "+ answer")));
+            } }, "+ answer"),
+            h("button", { class: "mini", onpointerdown: keepFocus, title: "Cut this part in two at the cursor", onclick: function () {
+              const at2 = area.selectionStart;
+              const first = area.value.slice(0, at2).trim(), second = area.value.slice(at2).trim();
+              if (!first || !second) return toast("Put the cursor where the new part should begin.");
+              remberParts();
+              part.text = first;
+              parts.splice(at + 1, 0, { type: "verse", text: second });
+              changed();
+            } }, "Split"),
+            at > 0 && parts[at - 1].type !== "mark" ? h("button", { class: "mini", title: "Join this part to the one above", onclick: function () {
+              remberParts();
+              parts[at - 1].text = (parts[at - 1].text.trim() + "\n" + part.text.trim()).trim();
+              parts.splice(at, 1);
+              changed();
+            } }, "Join ↑") : null));
         areas.push(area);
       }
       partsBox.appendChild(h("div", { class: "part " + part.type }, head, kind, body));
@@ -883,58 +1300,49 @@ function drawForm(app, id, newKind) {
       } }, label);
     };
     wordsBox.appendChild(h("div", { class: "wordshead" },
-      h("label", { class: "f", style: "margin:0;flex:1" }, "Words ", h("small", null, "ግጥም")),
+      h("h3", { style: "flex:1;margin:0" }, "ግጥም ", h("small", { class: "hint" }, "the words")),
       h("div", { class: "seg" }, tab("parts", "Parts"), tab("plain", "Plain text"))));
     if (mode === "plain") {
       wordsBox.appendChild(h("p", { class: "hint" }, "The whole mezmur as one text: an empty line between verses, a line with only አዝ where the chorus is sung again. To choose which verse is the chorus, go back to Parts."));
       wordsBox.appendChild(plain);
       return;
     }
-    wordsBox.appendChild(h("p", { class: "hint" }, "Each box is one part. Tap what it is: ግጥም (a verse), አዝማች (the chorus), or አዝ (the place where the chorus is sung again)."));
+    wordsBox.appendChild(h("p", { class: "hint" }, "Each box is one part. Tap what it is: ግጥም (a verse), አዝማች (the chorus), or አዝ (the chorus is sung again here)."));
     paintParts();
     wordsBox.appendChild(partsBox);
-    wordsBox.appendChild(h("div", { class: "tools", style: "margin-top:12px" },
-      h("button", { class: "btn small", onclick: function () { parts.push({ type: "verse", text: "" }); dirty(); paintParts(); } }, "+ Verse"),
-      h("button", { class: "btn small", onclick: function () { parts.push({ type: "mark", text: "" }); dirty(); paintParts(); } }, "+ አዝ here"),
+    wordsBox.appendChild(h("div", { class: "rowwrap", style: "margin-top:12px" },
+      h("button", { class: "btn small", onclick: function () { remberParts(); parts.push({ type: "verse", text: "" }); changed(); } }, icon("plus"), "Verse"),
+      h("button", { class: "btn small", onclick: function () { remberParts(); parts.push({ type: "mark", text: "" }); changed(); } }, icon("plus"), "አዝ here"),
       h("button", { class: "btn small", title: "Puts አዝ after every verse", onclick: function () {
-        let kept = parts.filter(function (part) { return part.type !== "mark"; });
-        if (!kept.some(function (part) { return part.type === "chorus"; }) && kept.length) kept[0].type = "chorus";
+        remberParts();
+        const keep = parts.filter(function (part) { return part.type !== "mark"; });
+        if (!keep.some(function (part) { return part.type === "chorus"; }) && keep.length) keep[0].type = "chorus";
         parts = [];
-        kept.forEach(function (part) {
+        keep.forEach(function (part) {
           parts.push(part);
           if (part.type === "verse" && part.text.trim()) parts.push({ type: "mark", text: "" });
         });
-        dirty(); paintParts();
-      } }, "አዝ after every verse")));
+        changed();
+      } }, "አዝ after every verse"),
+      h("button", { class: "btn small", title: "Cleans extra spaces, odd punctuation and verse numbers", onclick: function () {
+        remberParts();
+        parts.forEach(function (part) { if (part.type !== "mark") part.text = tidyText(part.text); });
+        changed();
+        toast("Tidied: extra spaces and verse numbers removed.");
+      } }, icon("wand"), "Tidy up"),
+      h("button", { class: "btn small", onclick: function () {
+        if (!history.length) return toast("Nothing to undo.");
+        parts = JSON.parse(history.pop());
+        changed();
+      } }, icon("undo"), "Undo")));
   };
-  paintWords();
 
-  const currentParts = function () {
-    if (mode === "plain") return toParts(plain.value, chorusKept);
-    return parts;
-  };
+  function currentParts() {
+    return mode === "plain" ? toParts(plain.value, chorusKept) : parts;
+  }
 
-  app.appendChild(h("div", { class: "card" },
-    h("label", { class: "f", style: "margin-top:0" }, "Title ", h("small", null, "ርዕስ")), title,
-    h("div", { class: "two" },
-      h("div", null, h("label", { class: "f" }, "Number ", h("small", null, "ቁጥር")), number),
-      wereb ? h("div", null, h("label", { class: "f" }, "When it is sung ", h("small", null, "በዓል / ዕለት")), occasion)
-            : h("div", null, h("label", { class: "f" }, "Section ", h("small", null, "ክፍል")), section))));
-
-  app.appendChild(h("div", { class: "card" }, wordsBox));
-
-  app.appendChild(h("div", { class: "card" },
-    h("label", { class: "f", style: "margin-top:0" }, "Translation ", h("small", null, "ትርጉም — may be empty")), translation,
-    h("div", { class: "two" },
-      h("div", null, h("label", { class: "f" }, "For whom ", h("small", null, "this chooses the picture")), whom),
-      h("div", null, h("label", { class: "f" }, "Also for ", h("small", null, "a second name, if any")), also)),
-    h("label", { class: "f" }, "Recording link ", h("small", null, "ድምፅ")), sound,
-    h("p", { class: "hint" }, "A direct link to the sound file. For Dropbox the link must end with dl=1 (it is corrected for you)."),
-    h("label", { class: "f" }, wereb ? "Composer " : "Singer or composer ", h("small", null, wereb ? "for example ቅዱስ ያሬድ" : "may be empty")), singer,
-    isNew ? null : h("p", { class: "hint" }, "Code of this mezmur: " + song.id + " (it never changes; favorites on phones use it)"),
-    errors));
-
-  const save = function () {
+  /** The mezmur as the form has it now. */
+  function collect() {
     const words = fromParts(currentParts());
     // "ch" is left as it was when the first verse is the chorus only because of the "አዝ" marks
     // (as in the book), and when there is only one verse (then the app shows no chorus anyway).
@@ -954,6 +1362,48 @@ function drawForm(app, id, newKind) {
       s: singer.value.trim(),
     });
     if (/dropbox\.com/.test(next.a)) next.a = next.a.replace(/([?&])dl=0\b/, "$1dl=1");
+    return next;
+  }
+
+  paintWords();
+
+  const formPane = h("div", { class: "formPane" },
+    restored ? h("div", { class: "warn" }, icon("undo"), h("span", { style: "flex:1" }, "Your unfinished typing was brought back."),
+      h("button", { class: "btn small", onclick: function () { remember("wip", null); render(); } }, "Discard it")) : null,
+    h("div", { class: "card" },
+      h("label", { class: "f", style: "margin-top:0" }, "Title ", h("small", null, "ርዕስ")), title,
+      h("div", { class: "two" },
+        h("div", null, h("label", { class: "f" }, "Number ", h("small", null, "ቁጥር")), number),
+        wereb ? h("div", null, h("label", { class: "f" }, "When it is sung ", h("small", null, "በዓል / ዕለት")), occasion)
+              : h("div", null, h("label", { class: "f" }, "Section ", h("small", null, "ክፍል")), section))),
+    h("div", { class: "card" }, wordsBox),
+    h("div", { class: "card" },
+      h("label", { class: "f", style: "margin-top:0" }, "Translation ", h("small", null, "ትርጉም — may be empty")), translation,
+      h("div", { class: "two" },
+        h("div", null, h("label", { class: "f" }, "For whom ", h("small", null, "this chooses the picture")), whom),
+        h("div", null, h("label", { class: "f" }, "Also for ", h("small", null, "a second name, if any")), also)),
+      h("label", { class: "f" }, "Recording link ", h("small", null, "ድምፅ")), sound,
+      h("p", { class: "hint" }, "A direct link to the sound file. For Dropbox the link must end with dl=1 (it is corrected for you)."),
+      h("label", { class: "f" }, wereb ? "Composer " : "Singer or composer ", h("small", null, wereb ? "for example ቅዱስ ያሬድ" : "may be empty")), singer,
+      isNew ? null : h("p", { class: "hint" }, "Code: " + song.id + " (it never changes; favorites on phones use it)"),
+      errors));
+
+  const split = h("div", { class: "split", "data-show": "edit" }, formPane,
+    h("div", { class: "previewPane" }, h("p", { class: "hint", style: "text-align:center;margin:0 0 10px" }, "As the app shows it"), previewBox));
+  const pane = function (name, label, picture) {
+    return h("button", { class: name === "edit" ? "on" : "", "data-pane": name, onclick: function () {
+      split.setAttribute("data-show", name);
+      document.querySelectorAll(".panes button").forEach(function (el) { el.classList.toggle("on", el.dataset.pane === name); });
+      refresh();
+    } }, icon(picture), label);
+  };
+  app.appendChild(h("div", { class: "panes" }, pane("edit", "Edit", "edit"), pane("preview", "Preview", "eye")));
+  app.appendChild(split);
+  refresh();
+  if (restored) formDirty = true;
+
+  const save = function (then) {
+    const next = collect();
     const problems = [];
     if (!next.t) problems.push("Write the title.");
     if (next.l.length < 10) problems.push("Write the words.");
@@ -961,106 +1411,317 @@ function drawForm(app, id, newKind) {
     if (next.a && !/^https?:\/\//.test(next.a)) problems.push("The recording link must start with https://");
     if (problems.length) { errors.textContent = problems.join(" "); errors.scrollIntoView({ block: "center" }); return; }
 
-    if (isNew) next.id = "web" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+    if (isNew) next.id = newId();
     if (isNew || next.w !== (mineNow ? mineNow.w : "")) next.img = pictureFor(applyDraft(Object.assign({}, book, { songs: book.songs.slice() }), draft), next.w, next.id);
-
     const twin = rows().find(function (row) {
       return row.song.id !== next.id && row.state !== "deleted" && (row.song.k === "wereb") === wereb && row.song.n === next.n;
     });
-
-    if (original && JSON.stringify(original) === JSON.stringify(next)) {
-      delete draft.changed[next.id];      // back to what is online: not a change any more
-      delete draft.before[next.id];
-    } else {
-      draft.changed[next.id] = next;
-      if (original && !draft.before[next.id]) draft.before[next.id] = original;
-    }
+    stage(next);
     keepDraft();
+    remember("wip", null);
+    clearTimeout(keepTimer);
     formDirty = false;
     toast(twin ? "Saved. Note: number " + next.n + " is also used by “" + twin.song.t + "”." : "Saved on this device. Press Publish to send it to everyone.");
-    go("");
+    then();
   };
+  saveForm = function () { save(function () { go("list"); }); };
 
-  const buttons = [
-    h("button", { class: "btn main", onclick: save }, isNew ? "Add" : "Save"),
-    h("button", { class: "btn", onclick: function () { openPreview(title.value.trim(), currentParts(), cleanText(translation.value)); } }, "Preview"),
-  ];
-  if (!isNew && original && draft.changed[id]) buttons.push(h("button", { class: "btn", onclick: function () {
-    delete draft.changed[id]; delete draft.before[id]; keepDraft(); toast("Your changes to this one were removed."); go("");
-  } }, "Undo my changes"));
-  if (!isNew) buttons.push(h("button", { class: "btn danger", onclick: function () {
+  const openMore = function () {
     sheet(function (box, close) {
-      box.appendChild(h("h2", null, "Delete “" + song.t + "”?"));
-      box.appendChild(h("p", { class: "hint" }, "It disappears from every phone after you publish. Until then you can bring it back from the list."));
-      box.appendChild(h("div", { class: "foot" },
-        h("button", { class: "btn", onclick: close }, "Cancel"),
-        h("button", { class: "btn danger", onclick: function () {
+      const item = function (picture, label, words, action, danger) {
+        return h("button", { class: "btn" + (danger ? " danger" : ""), style: "width:100%;justify-content:flex-start;margin-top:8px;border-radius:16px;padding:12px 14px", onclick: function () { close(); action(); } },
+          icon(picture), h("span", { style: "text-align:left" }, label, words ? h("div", { class: "hint", style: "margin:0;font-weight:400" }, words) : null));
+      };
+      box.appendChild(h("h2", null, "More"));
+      if (previousSong) box.appendChild(item("up", "Previous: " + previousSong.t, "Opens it without saving this one", function () { leaveForm(function () { go("edit=" + previousSong.id); }); }));
+      if (nextSong) box.appendChild(item("down", "Next: " + nextSong.t, "Opens it without saving this one", function () { leaveForm(function () { go("edit=" + nextSong.id); }); }));
+      if (!isNew) box.appendChild(item("copy", "Make a copy", "A new mezmur that starts with these words", function () { leaveForm(function () { go("copy=" + id); }); }));
+      if (!isNew && original && draft.changed[id]) box.appendChild(item("undo", "Undo my changes", "Back to how it is online", function () {
+        delete draft.changed[id]; delete draft.before[id]; keepDraft(); remember("wip", null); formDirty = false;
+        toast("Your changes to this one were removed."); go("list");
+      }));
+      if (!isNew) box.appendChild(item("trash", "Delete this " + (wereb ? "wereb" : "mezmur"), "It leaves every phone after you publish", function () {
+        ask("Delete “" + song.t + "”?", "It disappears from every phone after you publish. Until then you can bring it back from the list.", "Delete", true, function () {
           delete draft.changed[id];
           if (original) {
             if (draft.deleted.indexOf(id) < 0) draft.deleted.push(id);
             if (!draft.before[id]) draft.before[id] = original;
           }
-          keepDraft(); close(); formDirty = false; go("");
-        } }, "Delete")));
+          keepDraft(); remember("wip", null); formDirty = false; go("list");
+        });
+      }, true));
+      box.appendChild(h("div", { class: "foot" }, h("button", { class: "btn", onclick: close }, "Close")));
     });
-  } }, "Delete"));
-  document.body.appendChild(h("div", { class: "actions" }, h("div", { class: "in" }, buttons)));
+  };
+
+  document.body.appendChild(h("div", { class: "actions" }, h("div", { class: "in" },
+    h("button", { class: "btn main", onclick: function () { saveForm(); } }, icon("check"), isNew ? "Add" : "Save"),
+    nextSong ? h("button", { class: "btn", title: "Saves this one and opens the next", onclick: function () { save(function () { go("edit=" + nextSong.id); }); } }, "Save & next", icon("right")) : null,
+    isNew && !copyOf ? null : h("button", { class: "btn", "aria-label": "More", onclick: openMore }, icon("more")),
+    savedNote)));
 }
 
-// ---------- publish, menu, files ----------
+// ---------- my changes, before they are published ----------
+/** The lines that were taken out and put in, in order. */
+function diffLines(before, after) {
+  const a = before.split("\n"), b = after.split("\n");
+  const n = a.length, m = b.length;
+  const table = [];
+  for (let i = 0; i <= n; i++) table.push(new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) {
+    table[i][j] = a[i] === b[j] ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1]);
+  }
+  const out = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { i++; j++; }
+    else if (table[i + 1][j] >= table[i][j + 1]) out.push({ kind: "out", text: a[i++] });
+    else out.push({ kind: "in", text: b[j++] });
+  }
+  while (i < n) out.push({ kind: "out", text: a[i++] });
+  while (j < m) out.push({ kind: "in", text: b[j++] });
+  return out.filter(function (line) { return line.text.trim(); });
+}
+
+function drawChanges(app) {
+  const book = source();
+  $("heading").textContent = "My changes";
+  const changes = countChanges();
+  if (!changes.total) {
+    app.appendChild(h("div", { class: "card" }, h("div", { class: "empty" }, icon("check"), "Nothing waits to be published.")));
+    return;
+  }
+  app.appendChild(h("div", { class: "unsent", style: "margin-top:0" },
+    h("div", { class: "what" }, h("b", null, changes.whole ? "The whole book is replaced" : changes.total + " change" + (changes.total > 1 ? "s" : "") + " on this device"),
+      h("small", null, "Look them over, then publish them to everyone.")),
+    h("button", { class: "btn small", onclick: openPublish }, icon("send"), "Publish")));
+  if (changes.whole) app.appendChild(h("div", { class: "warn", style: "margin-top:14px" }, icon("warn"), "You opened a backup file (or an older version). Publishing puts it in place of the whole online book."));
+
+  const names = { t: "Title", n: "Number", c: "Section", tr: "Translation", a: "Recording", w: "For whom", w2: "Also for", ch: "Chorus", s: "Singer", o: "When it is sung" };
+  const line = function (kind, text) {
+    return h("div", { style: "padding:3px 10px;border-radius:8px;margin-top:3px;font:15px/1.6 var(--serif);" +
+      (kind === "in" ? "background:rgba(27,116,102,.14);" : "background:rgba(179,38,30,.12);text-decoration:line-through;opacity:.8;") }, (kind === "in" ? "+ " : "− ") + text);
+  };
+  const card = function (song, state, body, undo) {
+    return h("div", { class: "card", style: "margin-top:14px" },
+      h("div", { style: "display:flex;gap:12px;align-items:center" },
+        h("span", { class: "num", style: gradient(song.k === "wereb" ? "ወረብ" : song.c) }, song.n),
+        h("div", { style: "flex:1;min-width:0" }, h("h3", { style: "margin:0" }, song.t), h("span", { class: "tag " + state }, state)),
+        h("button", { class: "btn small", onclick: undo }, icon("undo"), "Undo")),
+      body);
+  };
+
+  const known = new Set(book.songs.map(function (song) { return song.id; }));
+  for (const id in draft.changed) {
+    const now = draft.changed[id];
+    const was = known.has(id) ? book.songs.find(function (song) { return song.id === id; }) : null;
+    const body = h("div", { style: "margin-top:10px" });
+    if (!was) {
+      body.appendChild(h("p", { class: "hint" }, "A new " + (now.k === "wereb" ? "wereb" : "mezmur") + ": " + now.l.split("\n").filter(Boolean).length + " lines."));
+    } else {
+      for (const key in names) {
+        if ((was[key] || "") === (now[key] || "") || (!was[key] && !now[key])) continue;
+        body.appendChild(h("div", { class: "hint", style: "margin-top:6px" }, h("b", null, names[key] + ": "), String(was[key] || "—") + "  →  " + String(now[key] || "—")));
+      }
+      if (was.l !== now.l) diffLines(was.l, now.l).forEach(function (item) { body.appendChild(line(item.kind, item.text)); });
+    }
+    app.appendChild(card(now, was ? "edited" : "new", body, function () {
+      delete draft.changed[id]; delete draft.before[id]; keepDraft(); render();
+    }));
+  }
+  for (const id of draft.deleted) {
+    const was = book.songs.find(function (song) { return song.id === id; });
+    if (!was) continue;
+    app.appendChild(card(was, "deleted", h("p", { class: "hint" }, "It will be removed from every phone."), function () {
+      draft.deleted = draft.deleted.filter(function (other) { return other !== id; });
+      delete draft.before[id]; keepDraft(); render();
+    }));
+  }
+  app.appendChild(h("button", { class: "btn danger", style: "margin-top:18px", onclick: function () {
+    ask("Throw away all your changes?", "Everything you did and have not published is removed from this device. The online book is not touched.", "Throw away", true, function () {
+      draft = emptyDraft(); keepDraft(); go("home");
+    });
+  } }, icon("trash"), "Throw away all my changes"));
+}
+
+// ---------- find and replace in the whole book ----------
+function openReplace() {
+  sheet(function (box, close) {
+    const find = h("input", { class: "field", placeholder: "the word as it is written now", autocapitalize: "none" });
+    const put = h("input", { class: "field", placeholder: "the word as it should be", autocapitalize: "none" });
+    const titles = h("input", { type: "checkbox" });
+    const result = h("div", { class: "hint", style: "margin-top:12px;min-height:44px" });
+    const doIt = h("button", { class: "btn main", disabled: true }, icon("swap"), "Replace everywhere");
+    let found = [];
+    const look = function () {
+      const word = find.value;
+      found = [];
+      let places = 0;
+      if (word.length >= 2) {
+        for (const row of rows()) {
+          if (row.state === "deleted") continue;
+          const count = row.song.l.split(word).length - 1 + (row.song.tr || "").split(word).length - 1 + (titles.checked ? row.song.t.split(word).length - 1 : 0);
+          if (count) { found.push(row.song); places += count; }
+        }
+      }
+      result.textContent = word.length < 2 ? "Write at least two letters." :
+        !found.length ? "Not found anywhere." :
+        "Found " + places + " time" + (places > 1 ? "s" : "") + " in " + found.length + " mezmur" + (found.length > 1 ? "s" : "") + ": " +
+          found.slice(0, 6).map(function (song) { return song.t; }).join("፣ ") + (found.length > 6 ? " …" : "");
+      doIt.disabled = !found.length;
+    };
+    find.addEventListener("input", look);
+    titles.addEventListener("change", look);
+    doIt.addEventListener("click", function () {
+      const word = find.value, next = put.value;
+      for (const song of found) {
+        const changed = Object.assign({}, song, { l: song.l.split(word).join(next), tr: (song.tr || "").split(word).join(next) });
+        if (titles.checked) changed.t = song.t.split(word).join(next);
+        stage(changed);
+      }
+      keepDraft();
+      close();
+      toast("Replaced in " + found.length + " mezmur" + (found.length > 1 ? "s" : "") + ". Review them, then publish.");
+      go("changes");
+    });
+    box.appendChild(h("h2", null, "Find and replace"));
+    box.appendChild(h("p", { class: "hint" }, "Changes a word in the words and translations of every mezmur at once. Nothing is sent until you publish, and you can undo each one."));
+    box.appendChild(h("label", { class: "f" }, "Find"));
+    box.appendChild(find);
+    box.appendChild(h("label", { class: "f" }, "Replace with"));
+    box.appendChild(put);
+    box.appendChild(h("label", { class: "check", style: "margin-top:10px" }, titles, "Also in titles"));
+    box.appendChild(result);
+    box.appendChild(h("div", { class: "foot" }, h("button", { class: "btn", onclick: close }, "Cancel"), doIt));
+  });
+}
+
+// ---------- the versions that were published ----------
+async function readHistory() {
+  const headers = { "Accept": "application/vnd.github+json" };
+  if (conn.token) headers["Authorization"] = "Bearer " + conn.token;
+  const address = API + "/repos/" + encodeURIComponent(conn.owner) + "/" + encodeURIComponent(conn.repo) + "/commits?path=" + BOOK_FILE + "&per_page=40";
+  let reply;
+  try { reply = await fetch(address, { headers: headers, cache: "no-store" }); }
+  catch (problem) { throw new Error("No internet connection (or GitHub cannot be reached)."); }
+  if (!reply.ok) throw new Error(plainError(reply.status));
+  return (await reply.json()).map(function (item) {
+    const found = /^Version (\d+)(?::\s*([\s\S]*))?$/.exec(item.commit.message.trim());
+    return { sha: item.sha, rev: found ? found[1] : "", note: found ? (found[2] || "") : item.commit.message.trim(),
+             when: item.commit.author.date, who: item.commit.author.name };
+  });
+}
+
+function drawHistory(app) {
+  app.appendChild(h("div", { class: "hero blue" },
+    h("div", { class: "over" }, "HISTORY"),
+    h("h1", null, "Published versions"),
+    h("div", { class: "note", style: "margin:0" }, "Every time someone publishes, the book gets a new version. An older one can be brought back.")));
+  const box = h("div", { style: "margin-top:14px" }, h("div", { class: "card" }, h("div", { class: "empty" }, icon("refresh", "spin"), "Reading the history…")));
+  app.appendChild(box);
+  if (!conn.owner) { box.textContent = ""; box.appendChild(h("div", { class: "card" }, h("p", { class: "hint", style: "margin:0" }, "Connect first (Connection)."))); return; }
+  readHistory().then(function (versions) {
+    box.textContent = "";
+    if (!versions.length) box.appendChild(h("div", { class: "card" }, h("div", { class: "empty" }, icon("history"), "Nothing was published yet.")));
+    versions.forEach(function (version, at) {
+      const when = new Date(version.when);
+      const day = isNaN(when) ? "" : when.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) + ", " + when.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      box.appendChild(h("div", { class: "card ver" + (at === 0 ? " now" : "") },
+        h("div", { class: "badge" }, version.rev || "•"),
+        h("div", { class: "what" },
+          h("b", null, version.note || (version.rev ? "Version " + version.rev : "Change")),
+          h("small", null, day + (version.who ? " • " + version.who : "")),
+          at === 0 ? h("div", { style: "margin-top:6px" }, h("span", { class: "tag new" }, "online now")) :
+            h("div", { style: "margin-top:8px" }, h("button", { class: "btn small", onclick: function () {
+              ask("Bring back " + (version.rev ? "version " + version.rev : "this version") + "?",
+                "The book goes back to how it was then. Nothing changes online until you press Publish, so you can look first.",
+                "Bring it back", false, function () { restore(version); });
+            } }, icon("undo"), "Bring back")))));
+    });
+  }).catch(function (problem) {
+    box.textContent = "";
+    box.appendChild(h("div", { class: "card" }, h("p", { class: "error", style: "margin:0" }, problem.message)));
+  });
+}
+
+async function restore(version) {
+  busy = "Reading the older version…";
+  paintStatus();
+  try {
+    const file = await readFile(BOOK_FILE + "?ref=" + version.sha);
+    if (!file) throw new Error("That version could not be read.");
+    const book = JSON.parse(file.text);
+    draft = emptyDraft();
+    draft.whole = book;
+    keepDraft();
+    busy = "";
+    toast((version.rev ? "Version " + version.rev : "That version") + " is open. Look it over, then Publish to put it online.");
+    go("changes");
+  } catch (problem) {
+    busy = "";
+    paintStatus();
+    toast(problem.message);
+  }
+}
+
+// ---------- publish, files ----------
 function openPublish() {
   const changes = countChanges();
   if (!changes.total) return;
-  if (!conn.token) { toast("Add the key first: menu → Connection."); return; }
+  if (!conn.token) { toast("Add the key first, in Connection."); return; }
   sheet(function (box, close) {
     const note = h("input", { class: "field", placeholder: "for example: 3 new mezmurs for ጥምቀት", maxlength: "120" });
-    const progress = h("p", { class: "hint" });
     const lines = [];
-    if (changes.whole) lines.push("The whole book is replaced by the file you opened.");
+    if (changes.whole) lines.push("The whole book is replaced by the file or version you opened.");
     if (changes.added) lines.push(changes.added + " new");
     if (changes.edited) lines.push(changes.edited + " changed");
     if (changes.deleted) lines.push(changes.deleted + " deleted");
-    const send = h("button", { class: "btn main" }, "Publish now");
+    const send = h("button", { class: "btn gold" }, icon("send"), "Publish now");
     const cancel = h("button", { class: "btn", onclick: close }, "Cancel");
     const clashBox = h("div");
+    const steps = h("ul", { class: "steps" });
     box.appendChild(h("h2", null, "Publish to everyone"));
     box.appendChild(h("ul", { class: "list" }, lines.map(function (line) { return h("li", null, line); })));
-    box.appendChild(h("p", { class: "hint" }, "Every phone with the app gets this within about a day (or at once with “check now” in the app's settings)."));
-    box.appendChild(h("label", { class: "f" }, "Note ", h("small", null, "what changed — optional")));
+    box.appendChild(h("p", { class: "hint" }, "Every phone with the app gets it by itself, usually within minutes."));
+    box.appendChild(h("label", { class: "f" }, "Note ", h("small", null, "people see it in the app under “ምን ተለወጠ?”")));
     box.appendChild(note);
     box.appendChild(clashBox);
-    box.appendChild(progress);
+    box.appendChild(steps);
     box.appendChild(h("div", { class: "foot" }, cancel, send));
 
+    const step = function (text) {
+      if (steps.lastChild) { steps.lastChild.className = "done"; steps.lastChild.firstChild.replaceWith(icon("check")); }
+      steps.appendChild(h("li", null, icon("refresh", "spin"), text));
+    };
     let checked = false;
     send.addEventListener("click", async function () {
       send.disabled = true; cancel.disabled = true;
       busy = "Publishing…"; paintStatus();
       try {
         if (!checked) {
-          progress.textContent = "Checking what is online…";
+          step("Checking what is online…");
           const clashes = await findClashes();
           checked = true;
           if (clashes.length) {
-            clashBox.appendChild(h("div", { class: "warn", style: "margin-top:12px" },
+            steps.textContent = "";
+            clashBox.appendChild(h("div", { class: "warn", style: "margin-top:12px;display:block" },
               "Someone else also changed these after you read the book. If you continue, your version replaces theirs:",
               h("ul", { class: "list" }, clashes.map(function (name) { return h("li", null, name); }))));
             send.textContent = "Publish mine anyway";
-            progress.textContent = "";
             send.disabled = false; cancel.disabled = false;
             busy = ""; paintStatus();
             return;
           }
         }
-        const rev = await publish(note.value.trim(), function (step) { progress.textContent = step; });
+        const rev = await publish(note.value.trim(), step);
         busy = "";
         close();
-        render();
+        go("home");
         toast("Published. The online book is now version " + rev + ".");
       } catch (problem) {
         busy = "";
-        progress.textContent = "";
-        progress.appendChild(h("span", { class: "error" }, problem.message));
+        steps.textContent = "";
+        steps.appendChild(h("li", { class: "error" }, problem.message));
         send.disabled = false; cancel.disabled = false;
         send.textContent = "Try again";
         paintStatus();
@@ -1090,7 +1751,7 @@ function pickFile() {
         draft.whole = book;
         keepDraft();
         toast("Opened " + book.songs.length + " mezmurs from the file. When you publish, this file replaces the whole online book.");
-        go("");
+        go("home");
       } catch (problem) {
         toast("This file is not a mezmur book (mezmurs.json).");
       }
@@ -1100,44 +1761,20 @@ function pickFile() {
   input.click();
 }
 
-function openMenu() {
-  sheet(function (box, close) {
-    const item = function (title, detail, action) {
-      return h("button", { onclick: function () { close(); action(); } }, title, h("small", null, detail));
-    };
-    const changes = countChanges();
-    box.appendChild(h("h2", null, "Menu"));
-    box.appendChild(h("div", { class: "menu" },
-      item("Connection", conn.owner ? conn.owner + "/" + conn.repo + (conn.token ? " • key saved" : " • no key") : "not set", function () { go("setup"); }),
-      item("Read again from online", "Gets the newest book. Your unpublished changes are kept.", function () { loadOnline(false); }),
-      item("Download a backup copy", "Saves the book, with your changes, as a file on this device.", function () {
-        const book = source();
-        if (!book) return toast("There is no book to save.");
-        const copy = applyDraft(Object.assign({}, book, { songs: book.songs.slice() }), draft);
-        download("mezmurs-backup-v" + (copy.rev || 1) + "-" + today() + ".json", JSON.stringify(copy));
-      }),
-      item("Open a backup file", "Replaces the whole book with a file. Use it to go back to an older copy.", pickFile),
-      changes.total ? item("Throw away my changes", changes.total + " unpublished change" + (changes.total > 1 ? "s" : "") + " on this device", function () {
-        sheet(function (inner, shut) {
-          inner.appendChild(h("h2", null, "Throw away your changes?"));
-          inner.appendChild(h("p", { class: "hint" }, "Everything you did and have not published is removed from this device. The online book is not touched."));
-          inner.appendChild(h("div", { class: "foot" },
-            h("button", { class: "btn", onclick: shut }, "Keep them"),
-            h("button", { class: "btn danger", onclick: function () { draft = emptyDraft(); keepDraft(); shut(); render(); } }, "Throw away")));
-        });
-      }) : null));
-  });
-}
-
+$("logo").src = LOGO;
 $("publish").addEventListener("click", openPublish);
-$("menu").addEventListener("click", openMenu);
 $("back").addEventListener("click", function () {
-  if (formDirty && !confirm("Leave without saving what you typed?")) return;
-  formDirty = false;
-  go("");
+  leaveForm(function () { go(route().name === "changes" ? "home" : "list"); });
 });
 window.addEventListener("hashchange", function () { render(); });
 window.addEventListener("beforeunload", function (event) { if (formDirty) { event.preventDefault(); event.returnValue = ""; } });
+// Ctrl+S (or ⌘S) saves the open mezmur.
+window.addEventListener("keydown", function (event) {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s" && saveForm) {
+    event.preventDefault();
+    saveForm();
+  }
+});
 
 // sw.js keeps a copy of this page in the browser, so it also opens without internet.
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "127.0.0.1" || location.hostname === "localhost")) {
